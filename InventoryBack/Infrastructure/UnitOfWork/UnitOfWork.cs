@@ -17,27 +17,27 @@ public class UnitOfWork : IUnitOfWork
     public UnitOfWork(
         InventoryDbContext db,
         IProductRepository productRepository,
+        IProductoBodegaRepository productoBodegaRepository,
         IGenericRepository<Categoria> categoryRepository,
-        IGenericRepository<Bodega> warehouseRepository,
-        IGenericRepository<ProductoBodega> productWarehouseRepository,
-        IGenericRepository<CampoExtra> extraFieldRepository,
-        IGenericRepository<ProductoCampoExtra> productExtraFieldRepository)
+        IGenericRepository<Bodega> bodegaRepository,
+        IGenericRepository<CampoExtra> campoExtraRepository,
+        IGenericRepository<ProductoCampoExtra> productoCampoExtraRepository)
     {
         _db = db ?? throw new ArgumentNullException(nameof(db));
         Products = productRepository ?? throw new ArgumentNullException(nameof(productRepository));
+        ProductoBodegas = productoBodegaRepository ?? throw new ArgumentNullException(nameof(productoBodegaRepository));
         Categories = categoryRepository ?? throw new ArgumentNullException(nameof(categoryRepository));
-        Warehouses = warehouseRepository ?? throw new ArgumentNullException(nameof(warehouseRepository));
-        ProductWarehouses = productWarehouseRepository ?? throw new ArgumentNullException(nameof(productWarehouseRepository));
-        ExtraFields = extraFieldRepository ?? throw new ArgumentNullException(nameof(extraFieldRepository));
-        ProductExtraFields = productExtraFieldRepository ?? throw new ArgumentNullException(nameof(productExtraFieldRepository));
+        Bodegas = bodegaRepository ?? throw new ArgumentNullException(nameof(bodegaRepository));
+        CamposExtras = campoExtraRepository ?? throw new ArgumentNullException(nameof(campoExtraRepository));
+        ProductoCamposExtras = productoCampoExtraRepository ?? throw new ArgumentNullException(nameof(productoCampoExtraRepository));
     }
 
     public IProductRepository Products { get; }
+    public IProductoBodegaRepository ProductoBodegas { get; }
     public IGenericRepository<Categoria> Categories { get; }
-    public IGenericRepository<Bodega> Warehouses { get; }
-    public IGenericRepository<ProductoBodega> ProductWarehouses { get; }
-    public IGenericRepository<CampoExtra> ExtraFields { get; }
-    public IGenericRepository<ProductoCampoExtra> ProductExtraFields { get; }
+    public IGenericRepository<Bodega> Bodegas { get; }
+    public IGenericRepository<CampoExtra> CamposExtras { get; }
+    public IGenericRepository<ProductoCampoExtra> ProductoCamposExtras { get; }
 
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)
     {

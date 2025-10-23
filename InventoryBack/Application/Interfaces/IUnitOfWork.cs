@@ -14,6 +14,11 @@ public interface IUnitOfWork : IDisposable
     IProductRepository Products { get; }
 
     /// <summary>
+    /// ProductoBodega repository (with specific queries)
+    /// </summary>
+    IProductoBodegaRepository ProductoBodegas { get; }
+
+    /// <summary>
     /// Category repository
     /// </summary>
     IGenericRepository<Categoria> Categories { get; }
@@ -21,22 +26,17 @@ public interface IUnitOfWork : IDisposable
     /// <summary>
     /// Warehouse (Bodega) repository
     /// </summary>
-    IGenericRepository<Bodega> Warehouses { get; }
-
-    /// <summary>
-    /// Product-Warehouse repository
-    /// </summary>
-    IGenericRepository<ProductoBodega> ProductWarehouses { get; }
+    IGenericRepository<Bodega> Bodegas { get; }
 
     /// <summary>
     /// Extra field repository
     /// </summary>
-    IGenericRepository<CampoExtra> ExtraFields { get; }
+    IGenericRepository<CampoExtra> CamposExtras { get; }
 
     /// <summary>
     /// Product-Extra field repository
     /// </summary>
-    IGenericRepository<ProductoCampoExtra> ProductExtraFields { get; }
+    IGenericRepository<ProductoCampoExtra> ProductoCamposExtras { get; }
 
     /// <summary>
     /// Saves all pending changes to the database.

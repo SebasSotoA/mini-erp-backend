@@ -23,24 +23,20 @@ public class ProductsController : ControllerBase
     }
 
     /// <summary>
-    /// Gets a paginated list of products.
+    /// Gets a paginated list of products with advanced filtering.
     /// </summary>
-    /// <param name="page">Page number (default: 1)</param>
-    /// <param name="pageSize">Page size (default: 20, max: 100)</param>
-    /// <param name="q">Search query (searches in name, SKU, description)</param>
+    /// <param name="filters">Filter criteria (from query string)</param>
     /// <param name="ct">Cancellation token</param>
     /// <returns>Paginated list of products</returns>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<ProductDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<ProductDto>>> GetProducts(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
-        [FromQuery] string? q = null,
+        [FromQuery] ProductFilterDto filters,
         CancellationToken ct = default)
     {
         try
         {
-            var result = await _productService.GetPagedAsync(page, pageSize, q, ct);
+            var result = await _productService.GetPagedAsync(filters, ct);
             return Ok(result);
         }
         catch (Exception ex)
@@ -79,16 +75,48 @@ public class ProductsController : ControllerBase
     }
 
     /// <summary>
-    /// Creates a new product.
+    /// Creates a new product. Supports both quick and advanced creation flows.
+    /// Quick flow: Nombre, UnidadMedida, BodegaId, PrecioBase, CostoInicial, Cantidad
+    /// Advanced flow: All quick fields + CodigoSku, CategoriaId, Descripcion, Imagen, BodegasAdicionales, CamposAdicionales
     /// </summary>
     /// <param name="dto">Product creation data</param>
     /// <param name="ct">Cancellation token</param>
     /// <returns>Created product</returns>
+    /// <remarks>
+    /// Example quick flow request (JSON):
+    /// ```json
+    /// {
+    ///   "nombre": "Laptop HP",
+    ///   "unidadMedida": "Unidad",
+    ///   "bodegaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    ///   "precioBase": 2500000,
+    ///   "costoInicial": 2000000,
+    ///   "cantidad": 10,
+    ///   "impuestoPorcentaje": 19
+    /// }
+    /// ```
+    /// 
+    /// Example advanced flow request (multipart/form-data):
+    /// - nombre: "Monitor LG UltraWide"
+    /// - unidadMedida: "Unidad"
+    /// - bodegaId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+    /// - precioBase: 1500000
+    /// - costoInicial: 1200000
+    /// - cantidad: 5
+    /// - impuestoPorcentaje: 19
+    /// - codigoSku: "MON-LG-001" (optional, auto-generated if not provided)
+    /// - categoriaId: "1fa85f64-5717-4562-b3fc-2c963f66afa6"
+    /// - descripcion: "Monitor ultrawide 34 pulgadas"
+    /// - imagen: [file upload]
+    /// - bodegasAdicionales: [{"bodegaId": "...", "cantidad": 3}]
+    /// - camposAdicionales: [{"nombre": "Garantía", "valor": "2 años"}]
+    /// </remarks>
     [HttpPost]
+    [Consumes("application/json", "multipart/form-data")]
     [ProducesResponseType(typeof(ProductDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ProductDto>> CreateProduct(
-        [FromBody] CreateProductDto dto,
+        [FromForm] CreateProductDto dto,
         CancellationToken ct = default)
     {
         try
@@ -151,40 +179,6 @@ public class ProductsController : ControllerBase
         {
             _logger.LogError(ex, "Error updating product {ProductId}", id);
             return StatusCode(500, new { message = "Error al actualizar el producto." });
-        }
-    }
-
-    /// <summary>
-    /// Deletes a product (soft delete - deactivates it).
-    /// </summary>
-    /// <param name="id">Product ID</param>
-    /// <param name="ct">Cancellation token</param>
-    /// <returns>No content</returns>
-    [HttpDelete("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteProduct(Guid id, CancellationToken ct = default)
-    {
-        try
-        {
-            await _productService.DeactivateAsync(id, ct);
-            return NoContent();
-        }
-        catch (NotFoundException ex)
-        {
-            _logger.LogWarning(ex, "Product not found when deleting: {ProductId}", id);
-            return NotFound(new { message = ex.Message });
-        }
-        catch (BusinessRuleException ex)
-        {
-            _logger.LogWarning(ex, "Business rule violation when deleting product {ProductId}", id);
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting product {ProductId}", id);
-            return StatusCode(500, new { message = "Error al eliminar el producto." });
         }
     }
 

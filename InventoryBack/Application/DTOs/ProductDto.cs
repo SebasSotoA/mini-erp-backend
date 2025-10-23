@@ -17,4 +17,17 @@ public class ProductDto
     public bool Activo { get; set; }
     public DateTime FechaCreacion { get; set; }
     public string? ImagenProductoUrl { get; set; }
+    public List<ProductoBodegaResponseDto>? Bodegas { get; set; }
+}
+
+/// <summary>
+/// DTO for ProductoBodega in responses.
+/// </summary>
+public class ProductoBodegaResponseDto
+{
+    public Guid BodegaId { get; set; }
+    public string? BodegaNombre { get; set; }
+    public int CantidadInicial { get; set; }
+    public int? CantidadMinima { get; set; }
+    public int? CantidadMaxima { get; set; }
 }

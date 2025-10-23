@@ -8,7 +8,7 @@ namespace InventoryBack.Application.Services;
 public interface IProductService
 {
     /// <summary>
-    /// Creates a new product.
+    /// Creates a new product. Supports both quick and advanced creation flows.
     /// </summary>
     /// <param name="dto">Product creation data</param>
     /// <param name="ct">Cancellation token</param>
@@ -24,17 +24,13 @@ public interface IProductService
     Task<ProductDto?> GetByIdAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>
-    /// Gets a paginated list of products.
+    /// Gets a paginated list of products with advanced filtering.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Page size (default: 20)</param>
-    /// <param name="searchQuery">Optional search query</param>
+    /// <param name="filters">Filter criteria</param>
     /// <param name="ct">Cancellation token</param>
     /// <returns>Paginated result of products</returns>
     Task<PagedResult<ProductDto>> GetPagedAsync(
-        int page = 1,
-        int pageSize = 20,
-        string? searchQuery = null,
+        ProductFilterDto filters,
         CancellationToken ct = default);
 
     /// <summary>

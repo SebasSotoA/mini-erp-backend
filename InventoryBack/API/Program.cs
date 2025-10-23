@@ -9,6 +9,7 @@ using InventoryBack.Domain.Entities;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using InventoryBack.Application.Validators;
+using InventoryBack.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,12 +28,18 @@ builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(EfGenericReposit
 
 // Domain-Specific Repositories
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IProductoBodegaRepository, ProductoBodegaRepository>();
 
 // Unit of Work
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Application Services
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<ISkuGeneratorService, SkuGeneratorService>();
+builder.Services.AddScoped<IStorageService, StorageService>();
+
+// HttpClient for StorageService
+builder.Services.AddHttpClient();
 
 // AutoMapper
 builder.Services.AddAutoMapper(typeof(Program).Assembly);

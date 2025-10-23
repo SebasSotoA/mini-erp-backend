@@ -1,3 +1,4 @@
+using InventoryBack.Application.DTOs;
 using InventoryBack.Domain.Entities;
 
 namespace InventoryBack.Application.Interfaces;
@@ -16,19 +17,13 @@ public interface IProductRepository : IGenericRepository<Producto>
     Task<Producto?> GetBySkuAsync(string sku, CancellationToken ct = default);
 
     /// <summary>
-    /// Gets a paginated list of products with optional search.
+    /// Gets a paginated list of products with advanced filtering.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Page size</param>
-    /// <param name="searchQuery">Optional search query (searches in Name, SKU, Description)</param>
-    /// <param name="includeInactive">Include inactive products</param>
+    /// <param name="filters">Filter criteria</param>
     /// <param name="ct">Cancellation token</param>
     /// <returns>Tuple with products and total count</returns>
     Task<(IEnumerable<Producto> Items, int TotalCount)> GetPagedAsync(
-        int page,
-        int pageSize,
-        string? searchQuery = null,
-        bool includeInactive = false,
+        ProductFilterDto filters,
         CancellationToken ct = default);
 
     /// <summary>
