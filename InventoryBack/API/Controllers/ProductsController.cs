@@ -76,8 +76,8 @@ public class ProductsController : ControllerBase
 
     /// <summary>
     /// Creates a new product. Supports both quick and advanced creation flows.
-    /// Quick flow: Nombre, UnidadMedida, BodegaId, PrecioBase, CostoInicial, Cantidad
-    /// Advanced flow: All quick fields + CodigoSku, CategoriaId, Descripcion, Imagen, BodegasAdicionales, CamposAdicionales
+    /// Quick flow: Nombre, UnidadMedida, bodegaPrincipalId, PrecioBase, CostoInicial, cantidadInicial
+    /// Advanced flow: All quick fields + CodigoSku, CategoriaId, Descripcion, imagenProductoUrl, BodegasAdicionales, CamposExtra
     /// </summary>
     /// <param name="dto">Product creation data</param>
     /// <param name="ct">Cancellation token</param>
@@ -88,35 +88,39 @@ public class ProductsController : ControllerBase
     /// {
     ///   "nombre": "Laptop HP",
     ///   "unidadMedida": "Unidad",
-    ///   "bodegaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    ///   "bodegaPrincipalId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
     ///   "precioBase": 2500000,
     ///   "costoInicial": 2000000,
-    ///   "cantidad": 10,
+    ///   "cantidadInicial": 10,
     ///   "impuestoPorcentaje": 19
     /// }
     /// ```
     /// 
-    /// Example advanced flow request (multipart/form-data):
-    /// - nombre: "Monitor LG UltraWide"
-    /// - unidadMedida: "Unidad"
-    /// - bodegaId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
-    /// - precioBase: 1500000
-    /// - costoInicial: 1200000
-    /// - cantidad: 5
-    /// - impuestoPorcentaje: 19
-    /// - codigoSku: "MON-LG-001" (optional, auto-generated if not provided)
-    /// - categoriaId: "1fa85f64-5717-4562-b3fc-2c963f66afa6"
-    /// - descripcion: "Monitor ultrawide 34 pulgadas"
-    /// - imagen: [file upload]
-    /// - bodegasAdicionales: [{"bodegaId": "...", "cantidad": 3}]
-    /// - camposAdicionales: [{"nombre": "Garantía", "valor": "2 años"}]
+    /// Example advanced flow request (JSON):
+    /// ```json
+    /// {
+    ///   "nombre": "Monitor LG UltraWide",
+    ///   "unidadMedida": "Unidad",
+    ///   "bodegaPrincipalId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    ///   "precioBase": 1500000,
+    ///   "costoInicial": 1200000,
+    ///   "cantidadInicial": 5,
+    ///   "impuestoPorcentaje": 19,
+    ///   "codigoSku": "MON-LG-001",
+    ///   "categoriaId": "1fa85f64-5717-4562-b3fc-2c963f66afa6",
+    ///   "descripcion": "Monitor ultrawide 34 pulgadas",
+    ///   "imagenProductoUrl": "https://your-project.supabase.co/storage/v1/object/public/products/monitor.jpg",
+    ///   "bodegasAdicionales": [{"bodegaId": "...", "cantidadInicial": 3}],
+    ///   "camposExtra": [{"campoExtraId": "...", "valor": "2 años"}]
+    /// }
+    /// ```
     /// </remarks>
     [HttpPost]
-    [Consumes("application/json", "multipart/form-data")]
+    [Consumes("application/json")]
     [ProducesResponseType(typeof(ProductDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ProductDto>> CreateProduct(
-        [FromForm] CreateProductDto dto,
+        [FromBody] CreateProductDto dto,
         CancellationToken ct = default)
     {
         try

@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using System.Text.Json.Serialization;
 
 namespace InventoryBack.Application.DTOs;
@@ -73,10 +72,11 @@ public class CreateProductDto
     public string? Descripcion { get; set; }
     
     /// <summary>
-    /// Product image file. Will be uploaded to Supabase Storage.
+    /// Product image URL from Supabase Storage. Optional.
+    /// Frontend should upload image to Supabase and provide the public URL.
     /// </summary>
-    [JsonPropertyName("imagen")]
-    public IFormFile? Imagen { get; set; }
+    [JsonPropertyName("imagenProductoUrl")]
+    public string? ImagenProductoUrl { get; set; }
     
     /// <summary>
     /// Additional warehouses to add the product to.

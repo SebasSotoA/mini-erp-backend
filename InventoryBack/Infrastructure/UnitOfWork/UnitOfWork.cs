@@ -18,7 +18,7 @@ public class UnitOfWork : IUnitOfWork
         InventoryDbContext db,
         IProductRepository productRepository,
         IProductoBodegaRepository productoBodegaRepository,
-        IGenericRepository<Categoria> categoryRepository,
+        ICategoriaRepository categoriaRepository,
         IBodegaRepository bodegaRepository,
         ICampoExtraRepository campoExtraRepository,
         IGenericRepository<ProductoCampoExtra> productoCampoExtraRepository)
@@ -26,7 +26,7 @@ public class UnitOfWork : IUnitOfWork
         _db = db ?? throw new ArgumentNullException(nameof(db));
         Products = productRepository ?? throw new ArgumentNullException(nameof(productRepository));
         ProductoBodegas = productoBodegaRepository ?? throw new ArgumentNullException(nameof(productoBodegaRepository));
-        Categories = categoryRepository ?? throw new ArgumentNullException(nameof(categoryRepository));
+        Categorias = categoriaRepository ?? throw new ArgumentNullException(nameof(categoriaRepository));
         Bodegas = bodegaRepository ?? throw new ArgumentNullException(nameof(bodegaRepository));
         CamposExtras = campoExtraRepository ?? throw new ArgumentNullException(nameof(campoExtraRepository));
         ProductoCamposExtras = productoCampoExtraRepository ?? throw new ArgumentNullException(nameof(productoCampoExtraRepository));
@@ -34,7 +34,7 @@ public class UnitOfWork : IUnitOfWork
 
     public IProductRepository Products { get; }
     public IProductoBodegaRepository ProductoBodegas { get; }
-    public IGenericRepository<Categoria> Categories { get; }
+    public ICategoriaRepository Categorias { get; }
     public IBodegaRepository Bodegas { get; }
     public ICampoExtraRepository CamposExtras { get; }
     public IGenericRepository<ProductoCampoExtra> ProductoCamposExtras { get; }

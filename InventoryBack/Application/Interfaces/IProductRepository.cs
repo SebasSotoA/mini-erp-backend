@@ -42,4 +42,28 @@ public interface IProductRepository : IGenericRepository<Producto>
     /// <param name="ct">Cancellation token</param>
     /// <returns>True if product is referenced</returns>
     Task<bool> IsProductReferencedAsync(Guid productId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Checks if a product has extra fields assigned.
+    /// </summary>
+    /// <param name="productId">Product ID</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>True if product has extra fields</returns>
+    Task<bool> HasExtraFieldsAsync(Guid productId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Checks if a product has inventory movements.
+    /// </summary>
+    /// <param name="productId">Product ID</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>True if product has movements</returns>
+    Task<bool> HasInventoryMovementsAsync(Guid productId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets detailed information about product dependencies for deletion validation.
+    /// </summary>
+    /// <param name="productId">Product ID</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Dictionary with dependency counts</returns>
+    Task<Dictionary<string, int>> GetProductDependenciesAsync(Guid productId, CancellationToken ct = default);
 }

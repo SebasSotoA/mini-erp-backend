@@ -14,18 +14,15 @@ public class ProductService : IProductService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly ISkuGeneratorService _skuGenerator;
-    private readonly IStorageService _storageService;
 
     public ProductService(
         IUnitOfWork unitOfWork,
         IMapper mapper,
-        ISkuGeneratorService skuGenerator,
-        IStorageService storageService)
+        ISkuGeneratorService skuGenerator)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _skuGenerator = skuGenerator ?? throw new ArgumentNullException(nameof(skuGenerator));
-        _storageService = storageService ?? throw new ArgumentNullException(nameof(storageService));
     }
 
     public async Task<ProductDto> CreateAsync(CreateProductDto dto, CancellationToken ct = default)
@@ -53,7 +50,7 @@ public class ProductService : IProductService
         // Validate: Category exists if provided
         if (dto.CategoriaId.HasValue)
         {
-            var category = await _unitOfWork.Categories.GetByIdAsync(dto.CategoriaId.Value, ct);
+            var category = await _unitOfWork.Categorias.GetByIdAsync(dto.CategoriaId.Value, ct);
             if (category == null)
             {
                 throw new NotFoundException("Categoria", dto.CategoriaId.Value);
@@ -84,22 +81,7 @@ public class ProductService : IProductService
             }
         }
 
-        // ========== 3. UPLOAD IMAGE TO SUPABASE (IF PROVIDED) ==========
-
-        string? imageUrl = null;
-        if (dto.Imagen != null)
-        {
-            try
-            {
-                imageUrl = await _storageService.UploadImageAsync(dto.Imagen, "products", ct);
-            }
-            catch (Exception ex)
-            {
-                throw new BusinessRuleException($"Error al subir la imagen: {ex.Message}");
-            }
-        }
-
-        // ========== 4. CREATE PRODUCT ENTITY ==========
+        // ========== 3. CREATE PRODUCT ENTITY ==========
 
         var producto = new Producto
         {
@@ -112,14 +94,14 @@ public class ProductService : IProductService
             CategoriaId = dto.CategoriaId,
             CodigoSku = sku,
             Descripcion = dto.Descripcion?.Trim(),
-            ImagenProductoUrl = imageUrl,
+            ImagenProductoUrl = dto.ImagenProductoUrl?.Trim(),
             Activo = true,
             FechaCreacion = DateTime.UtcNow
         };
 
         await _unitOfWork.Products.AddAsync(producto, ct);
 
-        // ========== 5. CREATE MAIN WAREHOUSE RELATIONSHIP ==========
+        // ========== 4. CREATE MAIN WAREHOUSE RELATIONSHIP ==========
 
         var mainProductoBodega = new ProductoBodega
         {
@@ -133,7 +115,7 @@ public class ProductService : IProductService
 
         await _unitOfWork.ProductoBodegas.AddAsync(mainProductoBodega, ct);
 
-        // ========== 6. CREATE ADDITIONAL WAREHOUSE RELATIONSHIPS (IF PROVIDED) ==========
+        // ========== 5. CREATE ADDITIONAL WAREHOUSE RELATIONSHIPS (IF PROVIDED) ==========
 
         if (dto.BodegasAdicionales != null && dto.BodegasAdicionales.Any())
         {
@@ -177,7 +159,7 @@ public class ProductService : IProductService
             }
         }
 
-        // ========== 7. LINK EXTRA FIELDS (IF PROVIDED) ==========
+        // ========== 6. LINK EXTRA FIELDS (IF PROVIDED) ==========
 
         if (dto.CamposExtra != null && dto.CamposExtra.Any())
         {
@@ -214,11 +196,11 @@ public class ProductService : IProductService
             }
         }
 
-        // ========== 8. SAVE ALL CHANGES ==========
+        // ========== 7. SAVE ALL CHANGES ==========
 
         await _unitOfWork.SaveChangesAsync(ct);
 
-        // ========== 9. RETURN PRODUCT DTO ==========
+        // ========== 8. RETURN PRODUCT DTO ==========
 
         return _mapper.Map<ProductDto>(producto);
     }
@@ -267,7 +249,7 @@ public class ProductService : IProductService
         // Validate category exists if provided
         if (dto.CategoriaId.HasValue)
         {
-            var category = await _unitOfWork.Categories.GetByIdAsync(dto.CategoriaId.Value, ct);
+            var category = await _unitOfWork.Categorias.GetByIdAsync(dto.CategoriaId.Value, ct);
             if (category == null)
             {
                 throw new NotFoundException("Categoria", dto.CategoriaId.Value);
@@ -325,29 +307,56 @@ public class ProductService : IProductService
             throw new NotFoundException("Producto", id);
         }
 
-        // Check if product is referenced in invoices
-        var isReferenced = await _unitOfWork.Products.IsProductReferencedAsync(id, ct);
-        if (isReferenced)
+        // ========== CHECK ALL DEPENDENCIES ==========
+
+        var dependencies = await _unitOfWork.Products.GetProductDependenciesAsync(id, ct);
+
+        var errors = new List<string>();
+
+        // Check invoices (critical - cannot delete)
+        if (dependencies["facturasVenta"] > 0)
         {
-            throw new BusinessRuleException(
-                "No se puede eliminar permanentemente el producto porque está referenciado en facturas de venta o compra. " +
-                "Considere desactivarlo en su lugar.");
+            errors.Add($"Está referenciado en {dependencies["facturasVenta"]} factura(s) de venta");
         }
 
-        // Delete image from storage if exists
-        if (!string.IsNullOrEmpty(producto.ImagenProductoUrl))
+        if (dependencies["facturasCompra"] > 0)
         {
-            try
-            {
-                await _storageService.DeleteImageAsync(producto.ImagenProductoUrl, "products", ct);
-            }
-            catch
-            {
-                // Log warning but continue with deletion
-            }
+            errors.Add($"Está referenciado en {dependencies["facturasCompra"]} factura(s) de compra");
         }
+
+        // Check inventory movements (critical - cannot delete)
+        if (dependencies["movimientosInventario"] > 0)
+        {
+            errors.Add($"Tiene {dependencies["movimientosInventario"]} movimiento(s) de inventario registrados");
+        }
+
+        if (errors.Any())
+        {
+            var errorMessage = "No se puede eliminar permanentemente el producto porque:\n- " +
+                               string.Join("\n- ", errors) +
+                               "\n\nConsidere desactivarlo en su lugar.";
+            throw new BusinessRuleException(errorMessage);
+        }
+
+        // ========== WARNINGS (will be cascade deleted) ==========
+
+        var warnings = new List<string>();
+
+        if (dependencies["bodegas"] > 0)
+        {
+            warnings.Add($"{dependencies["bodegas"]} relación(es) con bodegas");
+        }
+
+        if (dependencies["camposExtra"] > 0)
+        {
+            warnings.Add($"{dependencies["camposExtra"]} campo(s) extra asignados");
+        }
+
+        // Note: These will be cascade deleted due to OnDelete(DeleteBehavior.Cascade) in DbContext
+        // ProductoBodegas and ProductoCamposExtra have cascade delete configured
 
         // Permanent delete - physically remove from database
+        // This will cascade delete ProductoBodegas and ProductoCamposExtra
         _unitOfWork.Products.Remove(producto);
         await _unitOfWork.SaveChangesAsync(ct);
     }

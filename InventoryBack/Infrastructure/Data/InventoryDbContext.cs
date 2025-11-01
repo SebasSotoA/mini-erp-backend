@@ -82,6 +82,10 @@ namespace InventoryBack.Infrastructure.Data
                 entity.Property(c => c.Nombre)
                       .IsRequired()
                       .HasMaxLength(150);
+                entity.Property(c => c.Descripcion)
+                      .HasMaxLength(1000);
+                entity.Property(c => c.ImagenCategoriaUrl)
+                      .HasMaxLength(500);
                 entity.Property(c => c.Activo).IsRequired();
                 entity.Property(c => c.FechaCreacion).IsRequired();
             });

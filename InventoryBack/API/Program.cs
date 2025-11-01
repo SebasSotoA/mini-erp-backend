@@ -40,6 +40,7 @@ builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductoBodegaRepository, ProductoBodegaRepository>();
 builder.Services.AddScoped<ICampoExtraRepository, CampoExtraRepository>();
 builder.Services.AddScoped<IBodegaRepository, BodegaRepository>();
+builder.Services.AddScoped<ICategoriaRepository, CategoriaRepository>();
 
 // Unit of Work
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -48,8 +49,8 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICampoExtraService, CampoExtraService>();
 builder.Services.AddScoped<IBodegaService, BodegaService>();
+builder.Services.AddScoped<ICategoriaService, CategoriaService>();
 builder.Services.AddScoped<ISkuGeneratorService, SkuGeneratorService>();
-builder.Services.AddScoped<IStorageService, StorageService>();
 
 // HttpClient for StorageService
 builder.Services.AddHttpClient();

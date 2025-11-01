@@ -1,5 +1,69 @@
 @InventoryBack_HostAddress = http://localhost:5262
 
+### ========== CATEGORIAS ==========
+
+### Get all active categorias
+GET {{InventoryBack_HostAddress}}/api/categorias?activo=true
+Accept: application/json
+
+###
+
+### Get categoria by ID
+GET {{InventoryBack_HostAddress}}/api/categorias/{{categoriaId}}
+Accept: application/json
+
+###
+
+### Create categoria (with image URL from Supabase)
+POST {{InventoryBack_HostAddress}}/api/categorias
+Content-Type: application/json
+
+{
+  "nombre": "Electrónica",
+  "descripcion": "Productos electrónicos y tecnología",
+  "imagenCategoriaUrl": "https://your-supabase-project.supabase.co/storage/v1/object/public/categories/electronica.jpg"
+}
+
+###
+
+### Create categoria (without image)
+POST {{InventoryBack_HostAddress}}/api/categorias
+Content-Type: application/json
+
+{
+  "nombre": "Alimentos",
+  "descripcion": "Productos alimenticios y bebidas"
+}
+
+###
+
+### Update categoria
+PUT {{InventoryBack_HostAddress}}/api/categorias/{{categoriaId}}
+Content-Type: application/json
+
+{
+  "nombre": "Electrónica Actualizada",
+  "descripcion": "Descripción actualizada",
+  "imagenCategoriaUrl": "https://your-supabase-project.supabase.co/storage/v1/object/public/categories/electronica-new.jpg"
+}
+
+###
+
+### Activate categoria
+PATCH {{InventoryBack_HostAddress}}/api/categorias/{{categoriaId}}/activate
+
+###
+
+### Deactivate categoria (only if no products assigned)
+PATCH {{InventoryBack_HostAddress}}/api/categorias/{{categoriaId}}/deactivate
+
+###
+
+### Delete categoria permanently (only if no products)
+DELETE {{InventoryBack_HostAddress}}/api/categorias/{{categoriaId}}
+
+###
+
 ### ========== BODEGAS ==========
 
 ### Get all active bodegas
@@ -140,7 +204,7 @@ Content-Type: application/json
 
 ###
 
-### Create product - Advanced Flow (All fields)
+### Create product - Advanced Flow (All fields with Supabase image URL)
 POST {{InventoryBack_HostAddress}}/api/products
 Content-Type: application/json
 
@@ -155,6 +219,7 @@ Content-Type: application/json
   "categoriaId": "{{categoriaId}}",
   "codigoSku": "DELL-INS15-001",
   "descripcion": "Laptop Dell Inspiron 15 con procesador Intel i7, 16GB RAM, 512GB SSD",
+  "imagenProductoUrl": "https://your-project.supabase.co/storage/v1/object/public/products/dell-inspiron-15.jpg",
   "bodegasAdicionales": [
     {
       "bodegaId": "{{bodegaId2}}",

@@ -48,5 +48,20 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.FechaCreacion, opt => opt.Ignore())
             .ForMember(dest => dest.Activo, opt => opt.Ignore());
+
+        // Categoria mappings
+        CreateMap<Categoria, CategoriaDto>();
+        
+        CreateMap<CreateCategoriaDto, Categoria>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.FechaCreacion, opt => opt.Ignore())
+            .ForMember(dest => dest.Activo, opt => opt.MapFrom(src => true))
+            .ForMember(dest => dest.ImagenCategoriaUrl, opt => opt.Ignore());
+
+        CreateMap<UpdateCategoriaDto, Categoria>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.FechaCreacion, opt => opt.Ignore())
+            .ForMember(dest => dest.Activo, opt => opt.Ignore())
+            .ForMember(dest => dest.ImagenCategoriaUrl, opt => opt.Ignore());
     }
 }

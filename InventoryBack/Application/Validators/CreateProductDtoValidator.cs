@@ -53,13 +53,10 @@ public class CreateProductDtoValidator : AbstractValidator<CreateProductDto>
 
         // ========== IMAGEN VALIDATION ==========
 
-        RuleFor(x => x.Imagen)
-            .Must(BeAValidImage).WithMessage("El archivo debe ser una imagen válida (jpg, jpeg, png, gif, webp).")
-            .When(x => x.Imagen != null);
-
-        RuleFor(x => x.Imagen)
-            .Must(BeUnder5MB).WithMessage("El tamaño de la imagen no puede exceder 5 MB.")
-            .When(x => x.Imagen != null);
+        RuleFor(x => x.ImagenProductoUrl)
+            .MaximumLength(500).WithMessage("La URL de la imagen no puede exceder 500 caracteres.")
+            .Must(BeAValidUrl).WithMessage("La URL de la imagen debe ser válida.")
+            .When(x => !string.IsNullOrEmpty(x.ImagenProductoUrl));
 
         // ========== ADDITIONAL WAREHOUSES VALIDATION ==========
 
@@ -82,23 +79,6 @@ public class CreateProductDtoValidator : AbstractValidator<CreateProductDto>
             .When(x => x.CamposExtra != null);
     }
 
-    private bool BeAValidImage(IFormFile? file)
-    {
-        if (file == null) return true;
-
-        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
-        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-        return allowedExtensions.Contains(extension);
-    }
-
-    private bool BeUnder5MB(IFormFile? file)
-    {
-        if (file == null) return true;
-
-        const long maxSizeInBytes = 5 * 1024 * 1024; // 5 MB
-        return file.Length <= maxSizeInBytes;
-    }
-
     private bool NotContainDuplicateBodegas(List<ProductoBodegaDto>? bodegas)
     {
         if (bodegas == null || !bodegas.Any()) return true;
@@ -113,6 +93,14 @@ public class CreateProductDtoValidator : AbstractValidator<CreateProductDto>
 
         var ids = campos.Select(c => c.CampoExtraId).ToList();
         return ids.Count == ids.Distinct().Count();
+    }
+
+    private bool BeAValidUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return true;
+        
+        return Uri.TryCreate(url, UriKind.Absolute, out var uriResult) 
+               && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
     }
 }
 

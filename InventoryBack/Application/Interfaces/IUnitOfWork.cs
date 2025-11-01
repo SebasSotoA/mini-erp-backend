@@ -19,9 +19,9 @@ public interface IUnitOfWork : IDisposable
     IProductoBodegaRepository ProductoBodegas { get; }
 
     /// <summary>
-    /// Category repository
+    /// Category repository (with specific queries)
     /// </summary>
-    IGenericRepository<Categoria> Categories { get; }
+    ICategoriaRepository Categorias { get; }
 
     /// <summary>
     /// Warehouse (Bodega) repository (with specific queries)

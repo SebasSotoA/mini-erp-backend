@@ -95,6 +95,45 @@ public class ProductRepository : EfGenericRepository<Producto>, IProductReposito
         return isReferencedInPurchases;
     }
 
+    public async Task<bool> HasExtraFieldsAsync(Guid productId, CancellationToken ct = default)
+    {
+        return await _db.ProductoCamposExtra
+            .AnyAsync(pce => pce.ProductoId == productId, ct);
+    }
+
+    public async Task<bool> HasInventoryMovementsAsync(Guid productId, CancellationToken ct = default)
+    {
+        return await _db.MovimientosInventario
+            .AnyAsync(mi => mi.ProductoId == productId, ct);
+    }
+
+    public async Task<Dictionary<string, int>> GetProductDependenciesAsync(Guid productId, CancellationToken ct = default)
+    {
+        var dependencies = new Dictionary<string, int>();
+
+        // Count warehouse relationships (ProductoBodegas)
+        dependencies["bodegas"] = await _db.ProductoBodegas
+            .CountAsync(pb => pb.ProductoId == productId, ct);
+
+        // Count extra fields
+        dependencies["camposExtra"] = await _db.ProductoCamposExtra
+            .CountAsync(pce => pce.ProductoId == productId, ct);
+
+        // Count sale invoice details
+        dependencies["facturasVenta"] = await _db.FacturasVentaDetalle
+            .CountAsync(fvd => fvd.ProductoId == productId, ct);
+
+        // Count purchase invoice details
+        dependencies["facturasCompra"] = await _db.FacturasCompraDetalle
+            .CountAsync(fcd => fcd.ProductoId == productId, ct);
+
+        // Count inventory movements
+        dependencies["movimientosInventario"] = await _db.MovimientosInventario
+            .CountAsync(mi => mi.ProductoId == productId, ct);
+
+        return dependencies;
+    }
+
     // ========== PRIVATE HELPER METHODS ==========
 
     private IQueryable<Producto> ApplyStatusFilter(IQueryable<Producto> query, ProductFilterDto filters)
