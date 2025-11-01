@@ -24,14 +24,14 @@ public interface IUnitOfWork : IDisposable
     IGenericRepository<Categoria> Categories { get; }
 
     /// <summary>
-    /// Warehouse (Bodega) repository
+    /// Warehouse (Bodega) repository (with specific queries)
     /// </summary>
-    IGenericRepository<Bodega> Bodegas { get; }
+    IBodegaRepository Bodegas { get; }
 
     /// <summary>
-    /// Extra field repository
+    /// Extra field repository (with specific queries)
     /// </summary>
-    IGenericRepository<CampoExtra> CamposExtras { get; }
+    ICampoExtraRepository CamposExtras { get; }
 
     /// <summary>
     /// Product-Extra field repository

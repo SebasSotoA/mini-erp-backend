@@ -19,8 +19,8 @@ public class UnitOfWork : IUnitOfWork
         IProductRepository productRepository,
         IProductoBodegaRepository productoBodegaRepository,
         IGenericRepository<Categoria> categoryRepository,
-        IGenericRepository<Bodega> bodegaRepository,
-        IGenericRepository<CampoExtra> campoExtraRepository,
+        IBodegaRepository bodegaRepository,
+        ICampoExtraRepository campoExtraRepository,
         IGenericRepository<ProductoCampoExtra> productoCampoExtraRepository)
     {
         _db = db ?? throw new ArgumentNullException(nameof(db));
@@ -35,8 +35,8 @@ public class UnitOfWork : IUnitOfWork
     public IProductRepository Products { get; }
     public IProductoBodegaRepository ProductoBodegas { get; }
     public IGenericRepository<Categoria> Categories { get; }
-    public IGenericRepository<Bodega> Bodegas { get; }
-    public IGenericRepository<CampoExtra> CamposExtras { get; }
+    public IBodegaRepository Bodegas { get; }
+    public ICampoExtraRepository CamposExtras { get; }
     public IGenericRepository<ProductoCampoExtra> ProductoCamposExtras { get; }
 
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)

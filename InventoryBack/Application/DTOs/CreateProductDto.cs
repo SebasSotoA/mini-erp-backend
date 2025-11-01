@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using System.Text.Json.Serialization;
 
 namespace InventoryBack.Application.DTOs;
 
@@ -12,70 +13,85 @@ public class CreateProductDto
     /// <summary>
     /// Product name (required)
     /// </summary>
+    [JsonPropertyName("nombre")]
     public string Nombre { get; set; } = string.Empty;
     
     /// <summary>
     /// Unit of measure (e.g., "Unidad", "Kilogramo", "Metro")
     /// </summary>
+    [JsonPropertyName("unidadMedida")]
     public string UnidadMedida { get; set; } = string.Empty;
     
     /// <summary>
     /// Main warehouse ID where the product will be stored
     /// </summary>
-    public Guid BodegaId { get; set; }
+    [JsonPropertyName("bodegaPrincipalId")]
+    public Guid BodegaPrincipalId { get; set; }
     
     /// <summary>
     /// Base price (must be greater than CostoInicial)
     /// </summary>
+    [JsonPropertyName("precioBase")]
     public decimal PrecioBase { get; set; }
     
     /// <summary>
     /// Initial cost (must be less than PrecioBase)
     /// </summary>
+    [JsonPropertyName("costoInicial")]
     public decimal CostoInicial { get; set; }
     
     /// <summary>
     /// Initial quantity in the main warehouse
     /// </summary>
-    public int Cantidad { get; set; }
+    [JsonPropertyName("cantidadInicial")]
+    public int CantidadInicial { get; set; }
     
     // ========== OPTIONAL FIELDS (Advanced Flow) ==========
     
     /// <summary>
     /// Tax percentage (0-100). Optional.
     /// </summary>
+    [JsonPropertyName("impuestoPorcentaje")]
     public decimal? ImpuestoPorcentaje { get; set; }
     
     /// <summary>
     /// Category ID. Optional.
     /// </summary>
+    [JsonPropertyName("categoriaId")]
     public Guid? CategoriaId { get; set; }
     
     /// <summary>
     /// SKU code. If not provided, will be auto-generated.
     /// </summary>
+    [JsonPropertyName("codigoSku")]
     public string? CodigoSku { get; set; }
     
     /// <summary>
     /// Product description. Optional.
     /// </summary>
+    [JsonPropertyName("descripcion")]
     public string? Descripcion { get; set; }
     
     /// <summary>
     /// Product image file. Will be uploaded to Supabase Storage.
     /// </summary>
+    [JsonPropertyName("imagen")]
     public IFormFile? Imagen { get; set; }
     
     /// <summary>
     /// Additional warehouses to add the product to.
-    /// Each entry includes BodegaId and Cantidad.
+    /// Each entry includes bodegaId and cantidadInicial.
+    /// Cannot include the same bodega twice (including the main warehouse).
     /// </summary>
+    [JsonPropertyName("bodegasAdicionales")]
     public List<ProductoBodegaDto>? BodegasAdicionales { get; set; }
     
     /// <summary>
-    /// Additional dynamic fields (key-value pairs).
+    /// Predefined extra fields to link (by CampoExtraId).
+    /// These CamposExtra must exist in the system before creating the product.
     /// </summary>
-    public List<CampoAdicionalDto>? CamposAdicionales { get; set; }
+    [JsonPropertyName("camposExtra")]
+    public List<ProductoCampoExtraDto>? CamposExtra { get; set; }
 }
 
 /// <summary>
@@ -86,36 +102,43 @@ public class ProductoBodegaDto
     /// <summary>
     /// Warehouse ID
     /// </summary>
+    [JsonPropertyName("bodegaId")]
     public Guid BodegaId { get; set; }
     
     /// <summary>
     /// Initial quantity in this warehouse
     /// </summary>
-    public int Cantidad { get; set; }
+    [JsonPropertyName("cantidadInicial")]
+    public int CantidadInicial { get; set; }
     
     /// <summary>
     /// Minimum quantity threshold (optional)
     /// </summary>
+    [JsonPropertyName("cantidadMinima")]
     public int? CantidadMinima { get; set; }
     
     /// <summary>
     /// Maximum quantity threshold (optional)
     /// </summary>
+    [JsonPropertyName("cantidadMaxima")]
     public int? CantidadMaxima { get; set; }
 }
 
 /// <summary>
-/// DTO for dynamic additional fields.
+/// DTO for linking a product to a predefined CampoExtra.
+/// The CampoExtra must exist in the system.
 /// </summary>
-public class CampoAdicionalDto
+public class ProductoCampoExtraDto
 {
     /// <summary>
-    /// Field name/key
+    /// ID of the existing CampoExtra
     /// </summary>
-    public string Nombre { get; set; } = string.Empty;
+    [JsonPropertyName("campoExtraId")]
+    public Guid CampoExtraId { get; set; }
     
     /// <summary>
-    /// Field value
+    /// Value for this specific product
     /// </summary>
+    [JsonPropertyName("valor")]
     public string Valor { get; set; } = string.Empty;
 }

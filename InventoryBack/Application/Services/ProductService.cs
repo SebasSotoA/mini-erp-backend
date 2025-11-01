@@ -39,10 +39,10 @@ public class ProductService : IProductService
         }
 
         // Validate: Main warehouse exists
-        var mainWarehouse = await _unitOfWork.Bodegas.GetByIdAsync(dto.BodegaId, ct);
+        var mainWarehouse = await _unitOfWork.Bodegas.GetByIdAsync(dto.BodegaPrincipalId, ct);
         if (mainWarehouse == null)
         {
-            throw new NotFoundException("Bodega", dto.BodegaId);
+            throw new NotFoundException("Bodega", dto.BodegaPrincipalId);
         }
 
         if (!mainWarehouse.Activo)
@@ -125,8 +125,8 @@ public class ProductService : IProductService
         {
             Id = Guid.NewGuid(),
             ProductoId = producto.Id,
-            BodegaId = dto.BodegaId,
-            CantidadInicial = dto.Cantidad,
+            BodegaId = dto.BodegaPrincipalId,
+            CantidadInicial = dto.CantidadInicial,
             CantidadMinima = null,
             CantidadMaxima = null
         };
@@ -137,13 +137,16 @@ public class ProductService : IProductService
 
         if (dto.BodegasAdicionales != null && dto.BodegasAdicionales.Any())
         {
-            // Validate no duplicate warehouses
+            // Collect all warehouse IDs (including main)
             var allBodegaIds = dto.BodegasAdicionales.Select(b => b.BodegaId).ToList();
-            allBodegaIds.Add(dto.BodegaId); // Include main warehouse
+            allBodegaIds.Add(dto.BodegaPrincipalId);
 
+            // Validate no duplicate warehouses
             if (allBodegaIds.Count != allBodegaIds.Distinct().Count())
             {
-                throw new BusinessRuleException("No se pueden agregar bodegas duplicadas (incluyendo la bodega principal).");
+                throw new BusinessRuleException(
+                    "No se pueden agregar bodegas duplicadas. " +
+                    "Verifique que no se repita la bodega principal ni las bodegas adicionales.");
             }
 
             foreach (var bodegaDto in dto.BodegasAdicionales)
@@ -165,7 +168,7 @@ public class ProductService : IProductService
                     Id = Guid.NewGuid(),
                     ProductoId = producto.Id,
                     BodegaId = bodegaDto.BodegaId,
-                    CantidadInicial = bodegaDto.Cantidad,
+                    CantidadInicial = bodegaDto.CantidadInicial,
                     CantidadMinima = bodegaDto.CantidadMinima,
                     CantidadMaxima = bodegaDto.CantidadMaxima
                 };
@@ -174,18 +177,37 @@ public class ProductService : IProductService
             }
         }
 
-        // ========== 7. CREATE ADDITIONAL FIELDS (IF PROVIDED) ==========
+        // ========== 7. LINK EXTRA FIELDS (IF PROVIDED) ==========
 
-        if (dto.CamposAdicionales != null && dto.CamposAdicionales.Any())
+        if (dto.CamposExtra != null && dto.CamposExtra.Any())
         {
-            foreach (var campoDto in dto.CamposAdicionales)
+            foreach (var campoDto in dto.CamposExtra)
             {
+                // Validate that CampoExtra exists
+                var campoExtra = await _unitOfWork.CamposExtras.GetByIdAsync(campoDto.CampoExtraId, ct);
+                if (campoExtra == null)
+                {
+                    throw new NotFoundException("CampoExtra", campoDto.CampoExtraId);
+                }
+
+                if (!campoExtra.Activo)
+                {
+                    throw new BusinessRuleException($"El campo extra '{campoExtra.Nombre}' está inactivo.");
+                }
+
+                // Validate required field has a value
+                if (campoExtra.EsRequerido && string.IsNullOrWhiteSpace(campoDto.Valor))
+                {
+                    throw new BusinessRuleException($"El campo '{campoExtra.Nombre}' es requerido y debe tener un valor.");
+                }
+
+                // Create the ProductoCampoExtra relationship
                 var productoCampoExtra = new ProductoCampoExtra
                 {
                     Id = Guid.NewGuid(),
                     ProductoId = producto.Id,
-                    CampoExtraId = Guid.Empty, // Dynamic field (not linked to predefined CampoExtra)
-                    Valor = $"{campoDto.Nombre.Trim()}: {campoDto.Valor.Trim()}"
+                    CampoExtraId = campoExtra.Id,
+                    Valor = campoDto.Valor.Trim()
                 };
 
                 await _unitOfWork.ProductoCamposExtras.AddAsync(productoCampoExtra, ct);

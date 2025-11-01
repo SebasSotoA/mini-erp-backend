@@ -93,6 +93,10 @@ namespace InventoryBack.Infrastructure.Data
                 entity.Property(b => b.Nombre)
                       .IsRequired()
                       .HasMaxLength(150);
+                entity.Property(b => b.Direccion)
+                      .HasMaxLength(500);
+                entity.Property(b => b.Descripcion)
+                      .HasMaxLength(1000);
                 entity.Property(b => b.Activo).IsRequired();
                 entity.Property(b => b.FechaCreacion).IsRequired();
             });
@@ -126,6 +130,8 @@ namespace InventoryBack.Infrastructure.Data
                 entity.Property(ce => ce.EsRequerido).IsRequired();
                 entity.Property(ce => ce.Activo).IsRequired();
                 entity.Property(ce => ce.FechaCreacion).IsRequired();
+                entity.Property(ce => ce.Descripcion)
+                      .HasMaxLength(1000);
             });
 
             // === PRODUCTO CAMPO EXTRA ===

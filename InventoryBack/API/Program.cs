@@ -10,11 +10,20 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using InventoryBack.Application.Validators;
 using InventoryBack.Infrastructure.Services;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Configure camelCase for JSON serialization (matches frontend JS conventions)
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    });
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -29,12 +38,16 @@ builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(EfGenericReposit
 // Domain-Specific Repositories
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductoBodegaRepository, ProductoBodegaRepository>();
+builder.Services.AddScoped<ICampoExtraRepository, CampoExtraRepository>();
+builder.Services.AddScoped<IBodegaRepository, BodegaRepository>();
 
 // Unit of Work
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Application Services
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<ICampoExtraService, CampoExtraService>();
+builder.Services.AddScoped<IBodegaService, BodegaService>();
 builder.Services.AddScoped<ISkuGeneratorService, SkuGeneratorService>();
 builder.Services.AddScoped<IStorageService, StorageService>();
 

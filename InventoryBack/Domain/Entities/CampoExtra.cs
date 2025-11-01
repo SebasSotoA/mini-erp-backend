@@ -7,6 +7,7 @@
         public string TipoDato { get; set; }
         public bool EsRequerido { get; set; }
         public string? ValorPorDefecto { get; set; }
+        public string? Descripcion { get; set; }
         public bool Activo { get; set; }
         public DateTime FechaCreacion { get; set; }
     }

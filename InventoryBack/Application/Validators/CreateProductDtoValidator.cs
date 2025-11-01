@@ -20,7 +20,7 @@ public class CreateProductDtoValidator : AbstractValidator<CreateProductDto>
             .NotEmpty().WithMessage("La unidad de medida es requerida.")
             .MaximumLength(50).WithMessage("La unidad de medida no puede exceder 50 caracteres.");
 
-        RuleFor(x => x.BodegaId)
+        RuleFor(x => x.BodegaPrincipalId)
             .NotEmpty().WithMessage("La bodega principal es requerida.");
 
         RuleFor(x => x.PrecioBase)
@@ -34,8 +34,8 @@ public class CreateProductDtoValidator : AbstractValidator<CreateProductDto>
             .WithMessage("El precio base debe ser mayor que el costo inicial.")
             .When(x => x.CostoInicial > 0);
 
-        RuleFor(x => x.Cantidad)
-            .GreaterThanOrEqualTo(0).WithMessage("La cantidad no puede ser negativa.");
+        RuleFor(x => x.CantidadInicial)
+            .GreaterThanOrEqualTo(0).WithMessage("La cantidad inicial no puede ser negativa.");
 
         // ========== OPTIONAL FIELDS ==========
 
@@ -71,15 +71,15 @@ public class CreateProductDtoValidator : AbstractValidator<CreateProductDto>
             .SetValidator(new ProductoBodegaDtoValidator())
             .When(x => x.BodegasAdicionales != null);
 
-        // ========== ADDITIONAL FIELDS VALIDATION ==========
+        // ========== EXTRA FIELDS VALIDATION ==========
 
-        RuleFor(x => x.CamposAdicionales)
-            .Must(NotContainDuplicateFieldNames).WithMessage("No se pueden agregar campos adicionales con nombres duplicados.")
-            .When(x => x.CamposAdicionales != null && x.CamposAdicionales.Any());
+        RuleFor(x => x.CamposExtra)
+            .Must(NotContainDuplicateCampoExtraIds).WithMessage("No se pueden agregar campos extra duplicados.")
+            .When(x => x.CamposExtra != null && x.CamposExtra.Any());
 
-        RuleForEach(x => x.CamposAdicionales)
-            .SetValidator(new CampoAdicionalDtoValidator())
-            .When(x => x.CamposAdicionales != null);
+        RuleForEach(x => x.CamposExtra)
+            .SetValidator(new ProductoCampoExtraDtoValidator())
+            .When(x => x.CamposExtra != null);
     }
 
     private bool BeAValidImage(IFormFile? file)
@@ -107,12 +107,12 @@ public class CreateProductDtoValidator : AbstractValidator<CreateProductDto>
         return bodegaIds.Count == bodegaIds.Distinct().Count();
     }
 
-    private bool NotContainDuplicateFieldNames(List<CampoAdicionalDto>? campos)
+    private bool NotContainDuplicateCampoExtraIds(List<ProductoCampoExtraDto>? campos)
     {
         if (campos == null || !campos.Any()) return true;
 
-        var nombres = campos.Select(c => c.Nombre.Trim().ToLower()).ToList();
-        return nombres.Count == nombres.Distinct().Count();
+        var ids = campos.Select(c => c.CampoExtraId).ToList();
+        return ids.Count == ids.Distinct().Count();
     }
 }
 
@@ -126,8 +126,8 @@ public class ProductoBodegaDtoValidator : AbstractValidator<ProductoBodegaDto>
         RuleFor(x => x.BodegaId)
             .NotEmpty().WithMessage("El ID de la bodega es requerido.");
 
-        RuleFor(x => x.Cantidad)
-            .GreaterThanOrEqualTo(0).WithMessage("La cantidad no puede ser negativa.");
+        RuleFor(x => x.CantidadInicial)
+            .GreaterThanOrEqualTo(0).WithMessage("La cantidad inicial no puede ser negativa.");
 
         RuleFor(x => x.CantidadMinima)
             .GreaterThanOrEqualTo(0).WithMessage("La cantidad mínima no puede ser negativa.")
@@ -140,19 +140,17 @@ public class ProductoBodegaDtoValidator : AbstractValidator<ProductoBodegaDto>
 }
 
 /// <summary>
-/// Validator for CampoAdicionalDto.
+/// Validator for ProductoCampoExtraDto.
 /// </summary>
-public class CampoAdicionalDtoValidator : AbstractValidator<CampoAdicionalDto>
+public class ProductoCampoExtraDtoValidator : AbstractValidator<ProductoCampoExtraDto>
 {
-    public CampoAdicionalDtoValidator()
+    public ProductoCampoExtraDtoValidator()
     {
-        RuleFor(x => x.Nombre)
-            .NotEmpty().WithMessage("El nombre del campo adicional es requerido.")
-            .MaximumLength(100).WithMessage("El nombre del campo no puede exceder 100 caracteres.");
+        RuleFor(x => x.CampoExtraId)
+            .NotEmpty().WithMessage("El ID del campo extra es requerido.");
 
         RuleFor(x => x.Valor)
-            .NotEmpty().WithMessage("El valor del campo adicional es requerido.")
-            .MaximumLength(500).WithMessage("El valor del campo no puede exceder 500 caracteres.")
-            .When(x => !string.IsNullOrEmpty(x.Valor));
+            .NotEmpty().WithMessage("El valor del campo es requerido.")
+            .MaximumLength(500).WithMessage("El valor del campo no puede exceder 500 caracteres.");
     }
 }
