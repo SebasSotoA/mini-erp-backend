@@ -62,6 +62,7 @@ builder.Services.AddAutoMapper(typeof(Program).Assembly);
 // FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateProductDtoValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<AddProductoBodegaDtoValidator>();
 
 var app = builder.Build();
 

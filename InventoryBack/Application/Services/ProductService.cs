@@ -2,6 +2,7 @@ using AutoMapper;
 using InventoryBack.Application.DTOs;
 using InventoryBack.Application.Exceptions;
 using InventoryBack.Application.Interfaces;
+using InventoryBack.Application.Validators;
 using InventoryBack.Domain.Entities;
 
 namespace InventoryBack.Application.Services;
@@ -397,5 +398,249 @@ public class ProductService : IProductService
         // This will cascade delete ProductoBodegas and ProductoCamposExtra
         _unitOfWork.Products.Remove(producto);
         await _unitOfWork.SaveChangesAsync(ct);
+    }
+
+    // ========== WAREHOUSE MANAGEMENT ==========
+
+    public async Task AddToWarehouseAsync(Guid productId, AddProductoBodegaDto dto, CancellationToken ct = default)
+    {
+        // Validate product exists
+        var product = await _unitOfWork.Products.GetByIdAsync(productId, ct);
+        if (product == null)
+        {
+            throw new NotFoundException("Producto", productId);
+        }
+
+        // Validate warehouse exists and is active
+        var bodega = await _unitOfWork.Bodegas.GetByIdAsync(dto.BodegaId, ct);
+        if (bodega == null)
+        {
+            throw new NotFoundException("Bodega", dto.BodegaId);
+        }
+
+        if (!bodega.Activo)
+        {
+            throw new BusinessRuleException($"La bodega '{bodega.Nombre}' está inactiva.");
+        }
+
+        // Check if product is already in this warehouse
+        var existing = await _unitOfWork.ProductoBodegas.GetByProductAndBodegaAsync(productId, dto.BodegaId, ct);
+        if (existing != null)
+        {
+            throw new BusinessRuleException($"El producto ya está asignado a la bodega '{bodega.Nombre}'.");
+        }
+
+        // Create relationship
+        var productoBodega = new ProductoBodega
+        {
+            Id = Guid.NewGuid(),
+            ProductoId = productId,
+            BodegaId = dto.BodegaId,
+            CantidadInicial = dto.CantidadInicial,
+            CantidadMinima = dto.CantidadMinima,
+            CantidadMaxima = dto.CantidadMaxima
+        };
+
+        await _unitOfWork.ProductoBodegas.AddAsync(productoBodega, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
+    }
+
+    public async Task UpdateWarehouseQuantitiesAsync(Guid productId, Guid bodegaId, UpdateProductoBodegaDto dto, CancellationToken ct = default)
+    {
+        // Validate product exists
+        var product = await _unitOfWork.Products.GetByIdAsync(productId, ct);
+        if (product == null)
+        {
+            throw new NotFoundException("Producto", productId);
+        }
+
+        // Get product-warehouse relationship
+        var productoBodega = await _unitOfWork.ProductoBodegas.GetByProductAndBodegaAsync(productId, bodegaId, ct);
+        if (productoBodega == null)
+        {
+            throw new NotFoundException($"Producto-Bodega", $"{productId}/{bodegaId}");
+        }
+
+        // Update quantities
+        productoBodega.CantidadInicial = dto.CantidadInicial;
+        productoBodega.CantidadMinima = dto.CantidadMinima;
+        productoBodega.CantidadMaxima = dto.CantidadMaxima;
+
+        _unitOfWork.ProductoBodegas.Update(productoBodega);
+        await _unitOfWork.SaveChangesAsync(ct);
+    }
+
+    public async Task RemoveFromWarehouseAsync(Guid productId, Guid bodegaId, CancellationToken ct = default)
+    {
+        // Validate product exists
+        var product = await _unitOfWork.Products.GetByIdAsync(productId, ct);
+        if (product == null)
+        {
+            throw new NotFoundException("Producto", productId);
+        }
+
+        // Get product-warehouse relationship
+        var productoBodega = await _unitOfWork.ProductoBodegas.GetByProductAndBodegaAsync(productId, bodegaId, ct);
+        if (productoBodega == null)
+        {
+            throw new NotFoundException($"Producto-Bodega", $"{productId}/{bodegaId}");
+        }
+
+        // Check if this is the last warehouse
+        var allWarehouses = await _unitOfWork.ProductoBodegas.GetByProductIdAsync(productId, ct);
+        if (allWarehouses.Count() <= 1)
+        {
+            throw new BusinessRuleException("No se puede eliminar la última bodega del producto. Un producto debe estar al menos en una bodega.");
+        }
+
+        _unitOfWork.ProductoBodegas.Remove(productoBodega);
+        await _unitOfWork.SaveChangesAsync(ct);
+    }
+
+    public async Task<IEnumerable<ProductoBodegaDetailDto>> GetProductWarehousesAsync(Guid productId, CancellationToken ct = default)
+    {
+        // Validate product exists
+        var product = await _unitOfWork.Products.GetByIdAsync(productId, ct);
+        if (product == null)
+        {
+            throw new NotFoundException("Producto", productId);
+        }
+
+        var productoBodegas = await _unitOfWork.Products.GetProductWarehousesAsync(productId, ct);
+
+        var result = new List<ProductoBodegaDetailDto>();
+
+        foreach (var pb in productoBodegas)
+        {
+            var bodega = await _unitOfWork.Bodegas.GetByIdAsync(pb.BodegaId, ct);
+            if (bodega != null)
+            {
+                result.Add(new ProductoBodegaDetailDto
+                {
+                    BodegaId = pb.BodegaId,
+                    BodegaNombre = bodega.Nombre,
+                    BodegaDireccion = bodega.Direccion,
+                    CantidadInicial = pb.CantidadInicial,
+                    CantidadMinima = pb.CantidadMinima,
+                    CantidadMaxima = pb.CantidadMaxima
+                });
+            }
+        }
+
+        return result;
+    }
+
+    // ========== EXTRA FIELDS MANAGEMENT ==========
+
+    public async Task SetExtraFieldAsync(Guid productId, Guid campoExtraId, string valor, CancellationToken ct = default)
+    {
+        // Validate product exists
+        var product = await _unitOfWork.Products.GetByIdAsync(productId, ct);
+        if (product == null)
+        {
+            throw new NotFoundException("Producto", productId);
+        }
+
+        // Validate campo extra exists and is active
+        var campoExtra = await _unitOfWork.CamposExtras.GetByIdAsync(campoExtraId, ct);
+        if (campoExtra == null)
+        {
+            throw new NotFoundException("CampoExtra", campoExtraId);
+        }
+
+        if (!campoExtra.Activo)
+        {
+            throw new BusinessRuleException($"El campo extra '{campoExtra.Nombre}' está inactivo.");
+        }
+
+        // Validate value matches tipo dato
+        if (!CampoExtraValueValidator.IsValidValorPorDefecto(campoExtra.TipoDato, valor, out var errorMessage))
+        {
+            throw new BusinessRuleException(errorMessage ?? "El valor no es compatible con el tipo de dato.");
+        }
+
+        // Check if relationship already exists
+        var existingList = await _unitOfWork.ProductoCamposExtras.ListAsync(
+            filter: pce => pce.ProductoId == productId && pce.CampoExtraId == campoExtraId,
+            ct: ct);
+        var existing = existingList.FirstOrDefault();
+
+        if (existing != null)
+        {
+            // Update existing
+            existing.Valor = valor.Trim();
+            _unitOfWork.ProductoCamposExtras.Update(existing);
+        }
+        else
+        {
+            // Create new
+            var productoCampoExtra = new ProductoCampoExtra
+            {
+                Id = Guid.NewGuid(),
+                ProductoId = productId,
+                CampoExtraId = campoExtraId,
+                Valor = valor.Trim()
+            };
+            await _unitOfWork.ProductoCamposExtras.AddAsync(productoCampoExtra, ct);
+        }
+
+        await _unitOfWork.SaveChangesAsync(ct);
+    }
+
+    public async Task RemoveExtraFieldAsync(Guid productId, Guid campoExtraId, CancellationToken ct = default)
+    {
+        // Validate product exists
+        var product = await _unitOfWork.Products.GetByIdAsync(productId, ct);
+        if (product == null)
+        {
+            throw new NotFoundException("Producto", productId);
+        }
+
+        // Get relationship
+        var productoCampoExtraList = await _unitOfWork.ProductoCamposExtras.ListAsync(
+            filter: pce => pce.ProductoId == productId && pce.CampoExtraId == campoExtraId,
+            ct: ct);
+        var productoCampoExtra = productoCampoExtraList.FirstOrDefault();
+
+        if (productoCampoExtra == null)
+        {
+            throw new NotFoundException($"Producto-CampoExtra", $"{productId}/{campoExtraId}");
+        }
+
+        _unitOfWork.ProductoCamposExtras.Remove(productoCampoExtra);
+        await _unitOfWork.SaveChangesAsync(ct);
+    }
+
+    public async Task<IEnumerable<ProductoCampoExtraDetailDto>> GetProductExtraFieldsAsync(Guid productId, CancellationToken ct = default)
+    {
+        // Validate product exists
+        var product = await _unitOfWork.Products.GetByIdAsync(productId, ct);
+        if (product == null)
+        {
+            throw new NotFoundException("Producto", productId);
+        }
+
+        var productoCamposExtra = await _unitOfWork.Products.GetProductExtraFieldsAsync(productId, ct);
+
+        var result = new List<ProductoCampoExtraDetailDto>();
+
+        foreach (var pce in productoCamposExtra)
+        {
+            var campoExtra = await _unitOfWork.CamposExtras.GetByIdAsync(pce.CampoExtraId, ct);
+            if (campoExtra != null)
+            {
+                result.Add(new ProductoCampoExtraDetailDto
+                {
+                    CampoExtraId = pce.CampoExtraId,
+                    Nombre = campoExtra.Nombre,
+                    TipoDato = campoExtra.TipoDato,
+                    Valor = pce.Valor,
+                    EsRequerido = campoExtra.EsRequerido,
+                    Descripcion = campoExtra.Descripcion
+                });
+            }
+        }
+
+        return result;
     }
 }

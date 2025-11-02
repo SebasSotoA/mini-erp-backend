@@ -126,4 +126,117 @@ public class ProductsController : ControllerBase
         await _productService.DeletePermanentlyAsync(id, ct);
         return this.NoContentResponse("Producto eliminado exitosamente.");
     }
+
+    // ========== WAREHOUSE MANAGEMENT ==========
+
+    /// <summary>
+    /// Gets all warehouses where a product is stored.
+    /// </summary>
+    [HttpGet("{productId:guid}/bodegas")]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<ProductoBodegaDetailDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<IEnumerable<ProductoBodegaDetailDto>>>> GetProductWarehouses(
+        Guid productId,
+        CancellationToken ct = default)
+    {
+        var bodegas = await _productService.GetProductWarehousesAsync(productId, ct);
+        return this.OkResponse(bodegas, "Bodegas del producto obtenidas correctamente.");
+    }
+
+    /// <summary>
+    /// Adds a product to an additional warehouse.
+    /// </summary>
+    [HttpPost("{productId:guid}/bodegas")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<object>>> AddProductToWarehouse(
+        Guid productId,
+        [FromBody] AddProductoBodegaDto dto,
+        CancellationToken ct = default)
+    {
+        await _productService.AddToWarehouseAsync(productId, dto, ct);
+        return this.NoContentResponse("Producto agregado a la bodega exitosamente.");
+    }
+
+    /// <summary>
+    /// Updates product quantities/thresholds in a specific warehouse.
+    /// </summary>
+    [HttpPut("{productId:guid}/bodegas/{bodegaId:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<object>>> UpdateProductWarehouseQuantities(
+        Guid productId,
+        Guid bodegaId,
+        [FromBody] UpdateProductoBodegaDto dto,
+        CancellationToken ct = default)
+    {
+        await _productService.UpdateWarehouseQuantitiesAsync(productId, bodegaId, dto, ct);
+        return this.NoContentResponse("Cantidades actualizadas exitosamente.");
+    }
+
+    /// <summary>
+    /// Removes a product from a warehouse.
+    /// </summary>
+    [HttpDelete("{productId:guid}/bodegas/{bodegaId:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<object>>> RemoveProductFromWarehouse(
+        Guid productId,
+        Guid bodegaId,
+        CancellationToken ct = default)
+    {
+        await _productService.RemoveFromWarehouseAsync(productId, bodegaId, ct);
+        return this.NoContentResponse("Producto removido de la bodega exitosamente.");
+    }
+
+    // ========== EXTRA FIELDS MANAGEMENT ==========
+
+    /// <summary>
+    /// Gets all extra fields assigned to a product.
+    /// </summary>
+    [HttpGet("{productId:guid}/campos-extra")]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<ProductoCampoExtraDetailDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<IEnumerable<ProductoCampoExtraDetailDto>>>> GetProductExtraFields(
+        Guid productId,
+        CancellationToken ct = default)
+    {
+        var campos = await _productService.GetProductExtraFieldsAsync(productId, ct);
+        return this.OkResponse(campos, "Campos extra del producto obtenidos correctamente.");
+    }
+
+    /// <summary>
+    /// Sets or updates an extra field value for a product.
+    /// </summary>
+    [HttpPut("{productId:guid}/campos-extra/{campoExtraId:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<object>>> SetProductExtraField(
+        Guid productId,
+        Guid campoExtraId,
+        [FromBody] SetProductoCampoExtraDto dto,
+        CancellationToken ct = default)
+    {
+        await _productService.SetExtraFieldAsync(productId, campoExtraId, dto.Valor, ct);
+        return this.NoContentResponse("Campo extra actualizado exitosamente.");
+    }
+
+    /// <summary>
+    /// Removes an extra field from a product.
+    /// </summary>
+    [HttpDelete("{productId:guid}/campos-extra/{campoExtraId:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<object>>> RemoveProductExtraField(
+        Guid productId,
+        Guid campoExtraId,
+        CancellationToken ct = default)
+    {
+        await _productService.RemoveExtraFieldAsync(productId, campoExtraId, ct);
+        return this.NoContentResponse("Campo extra removido exitosamente.");
+    }
 }

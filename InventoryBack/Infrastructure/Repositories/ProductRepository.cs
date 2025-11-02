@@ -134,6 +134,22 @@ public class ProductRepository : EfGenericRepository<Producto>, IProductReposito
         return dependencies;
     }
 
+    public async Task<IEnumerable<ProductoBodega>> GetProductWarehousesAsync(Guid productId, CancellationToken ct = default)
+    {
+        return await _db.ProductoBodegas
+            .AsNoTracking()
+            .Where(pb => pb.ProductoId == productId)
+            .ToListAsync(ct);
+    }
+
+    public async Task<IEnumerable<ProductoCampoExtra>> GetProductExtraFieldsAsync(Guid productId, CancellationToken ct = default)
+    {
+        return await _db.ProductoCamposExtra
+            .AsNoTracking()
+            .Where(pce => pce.ProductoId == productId)
+            .ToListAsync(ct);
+    }
+
     // ========== PRIVATE HELPER METHODS ==========
 
     private IQueryable<Producto> ApplyStatusFilter(IQueryable<Producto> query, ProductFilterDto filters)

@@ -66,4 +66,20 @@ public interface IProductRepository : IGenericRepository<Producto>
     /// <param name="ct">Cancellation token</param>
     /// <returns>Dictionary with dependency counts</returns>
     Task<Dictionary<string, int>> GetProductDependenciesAsync(Guid productId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets all warehouses where a product is stored with details.
+    /// </summary>
+    /// <param name="productId">Product ID</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>List of product-warehouse relationships</returns>
+    Task<IEnumerable<Domain.Entities.ProductoBodega>> GetProductWarehousesAsync(Guid productId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets all extra fields assigned to a product.
+    /// </summary>
+    /// <param name="productId">Product ID</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>List of product-campo extra relationships</returns>
+    Task<IEnumerable<Domain.Entities.ProductoCampoExtra>> GetProductExtraFieldsAsync(Guid productId, CancellationToken ct = default);
 }

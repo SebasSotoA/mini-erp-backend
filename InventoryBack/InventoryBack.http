@@ -444,3 +444,69 @@ Content-Type: application/json
 }
 
 ###
+
+### Delete producto permanently (only if not referenced)
+DELETE {{InventoryBack_HostAddress}}/api/products/{{productId}}/permanent
+
+###
+
+### ========== PRODUCT WAREHOUSES MANAGEMENT ==========
+
+### Get all warehouses for a product
+GET {{InventoryBack_HostAddress}}/api/products/{{productId}}/bodegas
+Accept: application/json
+
+###
+
+### Add product to additional warehouse
+POST {{InventoryBack_HostAddress}}/api/products/{{productId}}/bodegas
+Content-Type: application/json
+
+{
+  "bodegaId": "{{bodegaId2}}",
+  "cantidadInicial": 15,
+  "cantidadMinima": 5,
+  "cantidadMaxima": 50
+}
+
+###
+
+### Update product quantities in a warehouse
+PUT {{InventoryBack_HostAddress}}/api/products/{{productId}}/bodegas/{{bodegaId2}}
+Content-Type: application/json
+
+{
+  "cantidadInicial": 20,
+  "cantidadMinima": 10,
+  "cantidadMaxima": 60
+}
+
+###
+
+### Remove product from warehouse
+DELETE {{InventoryBack_HostAddress}}/api/products/{{productId}}/bodegas/{{bodegaId2}}
+
+###
+
+### ========== PRODUCT EXTRA FIELDS MANAGEMENT ==========
+
+### Get all extra fields for a product
+GET {{InventoryBack_HostAddress}}/api/products/{{productId}}/campos-extra
+Accept: application/json
+
+###
+
+### Set/Update extra field for product
+PUT {{InventoryBack_HostAddress}}/api/products/{{productId}}/campos-extra/{{campoExtraGarantiaId}}
+Content-Type: application/json
+
+{
+  "valor": "36 meses"
+}
+
+###
+
+### Remove extra field from product
+DELETE {{InventoryBack_HostAddress}}/api/products/{{productId}}/campos-extra/{{campoExtraGarantiaId}}
+
+###
