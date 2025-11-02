@@ -119,43 +119,51 @@ public class ProductService : IProductService
 
         if (dto.BodegasAdicionales != null && dto.BodegasAdicionales.Any())
         {
-            // Collect all warehouse IDs (including main)
-            var allBodegaIds = dto.BodegasAdicionales.Select(b => b.BodegaId).ToList();
-            allBodegaIds.Add(dto.BodegaPrincipalId);
+            // Filter out entries with empty GUIDs or invalid data
+            var validBodegas = dto.BodegasAdicionales
+                .Where(b => b.BodegaId != Guid.Empty)
+                .ToList();
 
-            // Validate no duplicate warehouses
-            if (allBodegaIds.Count != allBodegaIds.Distinct().Count())
+            if (validBodegas.Any())
             {
-                throw new BusinessRuleException(
-                    "No se pueden agregar bodegas duplicadas. " +
-                    "Verifique que no se repita la bodega principal ni las bodegas adicionales.");
-            }
+                // Collect all warehouse IDs (including main)
+                var allBodegaIds = validBodegas.Select(b => b.BodegaId).ToList();
+                allBodegaIds.Add(dto.BodegaPrincipalId);
 
-            foreach (var bodegaDto in dto.BodegasAdicionales)
-            {
-                // Validate warehouse exists and is active
-                var bodega = await _unitOfWork.Bodegas.GetByIdAsync(bodegaDto.BodegaId, ct);
-                if (bodega == null)
+                // Validate no duplicate warehouses
+                if (allBodegaIds.Count != allBodegaIds.Distinct().Count())
                 {
-                    throw new NotFoundException("Bodega", bodegaDto.BodegaId);
+                    throw new BusinessRuleException(
+                        "No se pueden agregar bodegas duplicadas. " +
+                        "Verifique que no se repita la bodega principal ni las bodegas adicionales.");
                 }
 
-                if (!bodega.Activo)
+                foreach (var bodegaDto in validBodegas)
                 {
-                    throw new BusinessRuleException($"La bodega '{bodega.Nombre}' está inactiva.");
+                    // Validate warehouse exists and is active
+                    var bodega = await _unitOfWork.Bodegas.GetByIdAsync(bodegaDto.BodegaId, ct);
+                    if (bodega == null)
+                    {
+                        throw new NotFoundException("Bodega", bodegaDto.BodegaId);
+                    }
+
+                    if (!bodega.Activo)
+                    {
+                        throw new BusinessRuleException($"La bodega '{bodega.Nombre}' está inactiva.");
+                    }
+
+                    var productoBodega = new ProductoBodega
+                    {
+                        Id = Guid.NewGuid(),
+                        ProductoId = producto.Id,
+                        BodegaId = bodegaDto.BodegaId,
+                        CantidadInicial = bodegaDto.CantidadInicial,
+                        CantidadMinima = bodegaDto.CantidadMinima,
+                        CantidadMaxima = bodegaDto.CantidadMaxima
+                    };
+
+                    await _unitOfWork.ProductoBodegas.AddAsync(productoBodega, ct);
                 }
-
-                var productoBodega = new ProductoBodega
-                {
-                    Id = Guid.NewGuid(),
-                    ProductoId = producto.Id,
-                    BodegaId = bodegaDto.BodegaId,
-                    CantidadInicial = bodegaDto.CantidadInicial,
-                    CantidadMinima = bodegaDto.CantidadMinima,
-                    CantidadMaxima = bodegaDto.CantidadMaxima
-                };
-
-                await _unitOfWork.ProductoBodegas.AddAsync(productoBodega, ct);
             }
         }
 
@@ -163,36 +171,66 @@ public class ProductService : IProductService
 
         if (dto.CamposExtra != null && dto.CamposExtra.Any())
         {
-            foreach (var campoDto in dto.CamposExtra)
+            // Filter out entries with empty GUIDs or empty values
+            var validCampos = dto.CamposExtra
+                .Where(c => c.CampoExtraId != Guid.Empty)
+                .ToList();
+
+            if (validCampos.Any())
             {
-                // Validate that CampoExtra exists
-                var campoExtra = await _unitOfWork.CamposExtras.GetByIdAsync(campoDto.CampoExtraId, ct);
-                if (campoExtra == null)
+                // Get all campos extra to validate
+                var campoExtraIds = validCampos.Select(c => c.CampoExtraId).Distinct().ToList();
+                
+                foreach (var campoDto in validCampos)
                 {
-                    throw new NotFoundException("CampoExtra", campoDto.CampoExtraId);
+                    // Skip if valor is empty and campo is not required (we'll validate this below)
+                    if (string.IsNullOrWhiteSpace(campoDto.Valor))
+                    {
+                        // Check if this campo is required
+                        var campoExtra = await _unitOfWork.CamposExtras.GetByIdAsync(campoDto.CampoExtraId, ct);
+                        if (campoExtra == null)
+                        {
+                            throw new NotFoundException("CampoExtra", campoDto.CampoExtraId);
+                        }
+
+                        if (!campoExtra.Activo)
+                        {
+                            throw new BusinessRuleException($"El campo extra '{campoExtra.Nombre}' está inactivo.");
+                        }
+
+                        // If campo is required, throw error
+                        if (campoExtra.EsRequerido)
+                        {
+                            throw new BusinessRuleException($"El campo '{campoExtra.Nombre}' es requerido y debe tener un valor.");
+                        }
+
+                        // Skip optional campo with empty value
+                        continue;
+                    }
+
+                    // Validate that CampoExtra exists
+                    var campo = await _unitOfWork.CamposExtras.GetByIdAsync(campoDto.CampoExtraId, ct);
+                    if (campo == null)
+                    {
+                        throw new NotFoundException("CampoExtra", campoDto.CampoExtraId);
+                    }
+
+                    if (!campo.Activo)
+                    {
+                        throw new BusinessRuleException($"El campo extra '{campo.Nombre}' está inactivo.");
+                    }
+
+                    // Create the ProductoCampoExtra relationship
+                    var productoCampoExtra = new ProductoCampoExtra
+                    {
+                        Id = Guid.NewGuid(),
+                        ProductoId = producto.Id,
+                        CampoExtraId = campo.Id,
+                        Valor = campoDto.Valor.Trim()
+                    };
+
+                    await _unitOfWork.ProductoCamposExtras.AddAsync(productoCampoExtra, ct);
                 }
-
-                if (!campoExtra.Activo)
-                {
-                    throw new BusinessRuleException($"El campo extra '{campoExtra.Nombre}' está inactivo.");
-                }
-
-                // Validate required field has a value
-                if (campoExtra.EsRequerido && string.IsNullOrWhiteSpace(campoDto.Valor))
-                {
-                    throw new BusinessRuleException($"El campo '{campoExtra.Nombre}' es requerido y debe tener un valor.");
-                }
-
-                // Create the ProductoCampoExtra relationship
-                var productoCampoExtra = new ProductoCampoExtra
-                {
-                    Id = Guid.NewGuid(),
-                    ProductoId = producto.Id,
-                    CampoExtraId = campoExtra.Id,
-                    Valor = campoDto.Valor.Trim()
-                };
-
-                await _unitOfWork.ProductoCamposExtras.AddAsync(productoCampoExtra, ct);
             }
         }
 

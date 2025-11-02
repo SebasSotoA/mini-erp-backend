@@ -12,6 +12,7 @@ using InventoryBack.Application.Validators;
 using InventoryBack.Infrastructure.Services;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using InventoryBack.API.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -63,6 +64,11 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateProductDtoValidator>();
 
 var app = builder.Build();
+
+// ========== MIDDLEWARE PIPELINE ==========
+
+// 1. Exception Handling (MUST BE FIRST)
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

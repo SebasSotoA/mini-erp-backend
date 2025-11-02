@@ -131,16 +131,114 @@ Accept: application/json
 
 ###
 
-### Create campo extra
+### Create campo extra - Tipo Texto
 POST {{InventoryBack_HostAddress}}/api/campos-extra
 Content-Type: application/json
 
 {
-  "nombre": "Garantía",
+  "nombre": "Color",
   "tipoDato": "Texto",
+  "esRequerido": false,
+  "valorPorDefecto": "Rojo",
+  "descripcion": "Color del producto"
+}
+
+###
+
+### Create campo extra - Tipo Número
+POST {{InventoryBack_HostAddress}}/api/campos-extra
+Content-Type: application/json
+
+{
+  "nombre": "Garantía (meses)",
+  "tipoDato": "Número",
   "esRequerido": true,
-  "valorPorDefecto": "12 meses",
-  "descripcion": "Período de garantía del producto"
+  "valorPorDefecto": "12",
+  "descripcion": "Período de garantía en meses"
+}
+
+###
+
+### Create campo extra - Tipo Número Decimal
+POST {{InventoryBack_HostAddress}}/api/campos-extra
+Content-Type: application/json
+
+{
+  "nombre": "Peso (kg)",
+  "tipoDato": "Número Decimal",
+  "esRequerido": false,
+  "valorPorDefecto": "2.5",
+  "descripcion": "Peso del producto en kilogramos"
+}
+
+###
+
+### Create campo extra - Tipo Fecha
+POST {{InventoryBack_HostAddress}}/api/campos-extra
+Content-Type: application/json
+
+{
+  "nombre": "Fecha de Vencimiento",
+  "tipoDato": "Fecha",
+  "esRequerido": true,
+  "valorPorDefecto": "2024-12-31",
+  "descripcion": "Fecha de vencimiento del producto"
+}
+
+###
+
+### Create campo extra - Tipo SI/No
+POST {{InventoryBack_HostAddress}}/api/campos-extra
+Content-Type: application/json
+
+{
+  "nombre": "Requiere Refrigeración",
+  "tipoDato": "SI/No",
+  "esRequerido": true,
+  "valorPorDefecto": "NO",
+  "descripcion": "Indica si el producto requiere refrigeración"
+}
+
+###
+
+### ?? INVALID: Wrong value for SI/No type (should fail)
+POST {{InventoryBack_HostAddress}}/api/campos-extra
+Content-Type: application/json
+
+{
+  "nombre": "Test Campo",
+  "tipoDato": "SI/No",
+  "esRequerido": false,
+  "valorPorDefecto": "maybe",
+  "descripcion": "Test"
+}
+
+###
+
+### ?? INVALID: Wrong value for Número type (should fail)
+POST {{InventoryBack_HostAddress}}/api/campos-extra
+Content-Type: application/json
+
+{
+  "nombre": "Test Campo",
+  "tipoDato": "Número",
+  "esRequerido": false,
+  "valorPorDefecto": "abc",
+  "descripcion": "Test"
+}
+
+###
+
+### ?? INVALID: Wrong value for Fecha type (should fail)
+POST {{InventoryBack_HostAddress}}/api/campos-extra
+Content-Type: application/json
+
+{
+  "nombre": "Test Campo",
+  "tipoDato": "Fecha",
+  "esRequerido": false,
+  "valorPorDefecto": "invalid-date",
+  "descripcion": "Test"
 }
 
 ###
@@ -151,26 +249,11 @@ Content-Type: application/json
 
 {
   "nombre": "Garantía Actualizada",
-  "tipoDato": "Texto",
+  "tipoDato": "Número",
   "esRequerido": false,
-  "valorPorDefecto": "24 meses",
+  "valorPorDefecto": "24",
   "descripcion": "Período de garantía actualizado"
 }
-
-###
-
-### Activate campo extra
-PATCH {{InventoryBack_HostAddress}}/api/campos-extra/{{campoExtraId}}/activate
-
-###
-
-### Deactivate campo extra
-PATCH {{InventoryBack_HostAddress}}/api/campos-extra/{{campoExtraId}}/deactivate
-
-###
-
-### Delete campo extra permanently
-DELETE {{InventoryBack_HostAddress}}/api/campos-extra/{{campoExtraId}}
 
 ###
 
@@ -248,6 +331,101 @@ Content-Type: application/json
 
 ###
 
+### Create product - With optional empty arrays (valid)
+POST {{InventoryBack_HostAddress}}/api/products
+Content-Type: application/json
+
+{
+  "nombre": "Mouse Logitech",
+  "unidadMedida": "Unidad",
+  "bodegaPrincipalId": "{{bodegaId}}",
+  "precioBase": 50.00,
+  "costoInicial": 30.00,
+  "cantidadInicial": 100,
+  "bodegasAdicionales": [],
+  "camposExtra": []
+}
+
+###
+
+### ?? INVALID: Duplicate warehouse (should fail)
+POST {{InventoryBack_HostAddress}}/api/products
+Content-Type: application/json
+
+{
+  "nombre": "Test Product",
+  "unidadMedida": "Unidad",
+  "bodegaPrincipalId": "{{bodegaId}}",
+  "precioBase": 100.00,
+  "costoInicial": 50.00,
+  "cantidadInicial": 10,
+  "bodegasAdicionales": [
+    {
+      "bodegaId": "{{bodegaId}}",
+      "cantidadInicial": 5
+    }
+  ]
+}
+
+###
+
+### ?? INVALID: Empty GUID in bodegasAdicionales (should fail)
+POST {{InventoryBack_HostAddress}}/api/products
+Content-Type: application/json
+
+{
+  "nombre": "Test Product",
+  "unidadMedida": "Unidad",
+  "bodegaPrincipalId": "{{bodegaId}}",
+  "precioBase": 100.00,
+  "costoInicial": 50.00,
+  "cantidadInicial": 10,
+  "bodegasAdicionales": [
+    {
+      "bodegaId": "00000000-0000-0000-0000-000000000000",
+      "cantidadInicial": 5
+    }
+  ]
+}
+
+###
+
+### ?? INVALID: Empty GUID in camposExtra (should fail)
+POST {{InventoryBack_HostAddress}}/api/products
+Content-Type: application/json
+
+{
+  "nombre": "Test Product",
+  "unidadMedida": "Unidad",
+  "bodegaPrincipalId": "{{bodegaId}}",
+  "precioBase": 100.00,
+  "costoInicial": 50.00,
+  "cantidadInicial": 10,
+  "camposExtra": [
+    {
+      "campoExtraId": "00000000-0000-0000-0000-000000000000",
+      "valor": "Test"
+    }
+  ]
+}
+
+###
+
+### ?? INVALID: Invalid unit of measure (should fail)
+POST {{InventoryBack_HostAddress}}/api/products
+Content-Type: application/json
+
+{
+  "nombre": "Impresora HP V2",
+  "unidadMedida": "otro",
+  "bodegaPrincipalId": "{{bodegaId}}",
+  "precioBase": 320000,
+  "costoInicial": 150000,
+  "cantidadInicial": 5
+}
+
+###
+
 ### Update product
 PUT {{InventoryBack_HostAddress}}/api/products/{{productId}}
 Content-Type: application/json
@@ -256,7 +434,7 @@ Content-Type: application/json
   "nombre": "Laptop Dell Inspiron 15 Updated",
   "unidadMedida": "Unidad",
   "precioBase": 1600.00,
-  "impuestoPorcentaje": 19,
+  "impuestoPorPorcentaje": 19,
   "costoInicial": 1250.00,
   "categoriaId": "{{categoriaId}}",
   "codigoSku": "DELL-INS15-001",
@@ -264,20 +442,5 @@ Content-Type: application/json
   "activo": true,
   "imagenProductoUrl": null
 }
-
-###
-
-### Activate product
-PATCH {{InventoryBack_HostAddress}}/api/products/{{productId}}/activate
-
-###
-
-### Deactivate product
-PATCH {{InventoryBack_HostAddress}}/api/products/{{productId}}/deactivate
-
-###
-
-### Delete product permanently
-DELETE {{InventoryBack_HostAddress}}/api/products/{{productId}}
 
 ###

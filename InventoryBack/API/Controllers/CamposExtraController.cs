@@ -1,5 +1,8 @@
 using InventoryBack.Application.DTOs;
 using InventoryBack.Application.Services;
+using InventoryBack.Application.Exceptions;
+using InventoryBack.API.Extensions;
+using InventoryBack.API.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InventoryBack.API.Controllers;
@@ -19,75 +22,75 @@ public class CamposExtraController : ControllerBase
     /// Get all campos extra, optionally filtered by active status
     /// </summary>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<CampoExtraDto>>> GetAll([FromQuery] bool? activo = null, CancellationToken ct = default)
+    public async Task<ActionResult<ApiResponse<IEnumerable<CampoExtraDto>>>> GetAll([FromQuery] bool? activo = null, CancellationToken ct = default)
     {
         var campos = await _campoExtraService.GetAllAsync(activo, ct);
-        return Ok(campos);
+        return this.OkResponse(campos, "Campos extra obtenidos correctamente.");
     }
 
     /// <summary>
     /// Get a specific campo extra by ID
     /// </summary>
     [HttpGet("{id}")]
-    public async Task<ActionResult<CampoExtraDto>> GetById(Guid id, CancellationToken ct = default)
+    public async Task<ActionResult<ApiResponse<CampoExtraDto>>> GetById(Guid id, CancellationToken ct = default)
     {
         var campo = await _campoExtraService.GetByIdAsync(id, ct);
         
         if (campo == null)
         {
-            return NotFound(new { message = $"Campo extra con ID {id} no encontrado." });
+            throw new NotFoundException("CampoExtra", id);
         }
 
-        return Ok(campo);
+        return this.OkResponse(campo, "Campo extra obtenido correctamente.");
     }
 
     /// <summary>
     /// Create a new campo extra
     /// </summary>
     [HttpPost]
-    public async Task<ActionResult<CampoExtraDto>> Create([FromBody] CreateCampoExtraDto dto, CancellationToken ct = default)
+    public async Task<ActionResult<ApiResponse<CampoExtraDto>>> Create([FromBody] CreateCampoExtraDto dto, CancellationToken ct = default)
     {
         var campo = await _campoExtraService.CreateAsync(dto, ct);
-        return CreatedAtAction(nameof(GetById), new { id = campo.Id }, campo);
+        return this.CreatedResponse(nameof(GetById), new { id = campo.Id }, campo, "Campo extra creado exitosamente.");
     }
 
     /// <summary>
     /// Update an existing campo extra
     /// </summary>
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCampoExtraDto dto, CancellationToken ct = default)
+    public async Task<ActionResult<ApiResponse<object>>> Update(Guid id, [FromBody] UpdateCampoExtraDto dto, CancellationToken ct = default)
     {
         await _campoExtraService.UpdateAsync(id, dto, ct);
-        return NoContent();
+        return this.NoContentResponse("Campo extra actualizado exitosamente.");
     }
 
     /// <summary>
     /// Activate a campo extra
     /// </summary>
     [HttpPatch("{id}/activate")]
-    public async Task<IActionResult> Activate(Guid id, CancellationToken ct = default)
+    public async Task<ActionResult<ApiResponse<object>>> Activate(Guid id, CancellationToken ct = default)
     {
         await _campoExtraService.ActivateAsync(id, ct);
-        return NoContent();
+        return this.NoContentResponse("Campo extra activado exitosamente.");
     }
 
     /// <summary>
     /// Deactivate a campo extra
     /// </summary>
     [HttpPatch("{id}/deactivate")]
-    public async Task<IActionResult> Deactivate(Guid id, CancellationToken ct = default)
+    public async Task<ActionResult<ApiResponse<object>>> Deactivate(Guid id, CancellationToken ct = default)
     {
         await _campoExtraService.DeactivateAsync(id, ct);
-        return NoContent();
+        return this.NoContentResponse("Campo extra desactivado exitosamente.");
     }
 
     /// <summary>
-    /// Permanently delete a campo extra
+    /// Permanently delete a campo extra (only if not being used in products)
     /// </summary>
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeletePermanently(Guid id, CancellationToken ct = default)
+    public async Task<ActionResult<ApiResponse<object>>> DeletePermanently(Guid id, CancellationToken ct = default)
     {
         await _campoExtraService.DeletePermanentlyAsync(id, ct);
-        return NoContent();
+        return this.NoContentResponse("Campo extra eliminado exitosamente.");
     }
 }

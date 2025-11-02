@@ -5,8 +5,6 @@ namespace InventoryBack.Application.Validators;
 
 public class UpdateCampoExtraDtoValidator : AbstractValidator<UpdateCampoExtraDto>
 {
-    private static readonly string[] TiposDatoPermitidos = { "Texto", "Número", "Número Decimal", "Fecha", "SI/No" };
-
     public UpdateCampoExtraDtoValidator()
     {
         RuleFor(x => x.Nombre)
@@ -15,7 +13,8 @@ public class UpdateCampoExtraDtoValidator : AbstractValidator<UpdateCampoExtraDt
 
         RuleFor(x => x.TipoDato)
             .NotEmpty().WithMessage("El tipo de dato es requerido.")
-            .Must(BeAValidTipoDato).WithMessage($"El tipo de dato debe ser uno de: {string.Join(", ", TiposDatoPermitidos)}");
+            .Must(CampoExtraValueValidator.IsValidTipoDato)
+            .WithMessage("El tipo de dato debe ser uno de: Texto, Número, Número Decimal, Fecha, SI/No");
 
         RuleFor(x => x.ValorPorDefecto)
             .MaximumLength(500).WithMessage("El valor por defecto no puede exceder 500 caracteres.")
@@ -24,10 +23,26 @@ public class UpdateCampoExtraDtoValidator : AbstractValidator<UpdateCampoExtraDt
         RuleFor(x => x.Descripcion)
             .MaximumLength(1000).WithMessage("La descripción no puede exceder 1000 caracteres.")
             .When(x => !string.IsNullOrEmpty(x.Descripcion));
+
+        // Validación personalizada: El ValorPorDefecto debe coincidir con el TipoDato
+        RuleFor(x => x)
+            .Must(dto => ValidateValorPorDefectoMatchesTipoDato(dto, out _))
+            .WithMessage(dto => 
+            {
+                ValidateValorPorDefectoMatchesTipoDato(dto, out var errorMessage);
+                return errorMessage ?? "El valor por defecto no es compatible con el tipo de dato.";
+            })
+            .When(x => !string.IsNullOrEmpty(x.ValorPorDefecto));
     }
 
-    private bool BeAValidTipoDato(string tipoDato)
+    private bool ValidateValorPorDefectoMatchesTipoDato(
+        UpdateCampoExtraDto dto, 
+        out string? errorMessage)
     {
-        return TiposDatoPermitidos.Contains(tipoDato, StringComparer.OrdinalIgnoreCase);
+        return CampoExtraValueValidator.IsValidValorPorDefecto(
+            dto.TipoDato,
+            dto.ValorPorDefecto,
+            out errorMessage
+        );
     }
 }

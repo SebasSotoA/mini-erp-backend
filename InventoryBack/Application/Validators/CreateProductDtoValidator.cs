@@ -8,6 +8,20 @@ namespace InventoryBack.Application.Validators;
 /// </summary>
 public class CreateProductDtoValidator : AbstractValidator<CreateProductDto>
 {
+    private static readonly string[] ValidUnits =
+    [
+        // Unidad
+        "Unidad", "Pieza", "Paquete", "Caja", "Docena",
+        // Longitud
+        "Metro", "Centímetro", "Kilómetro", "Pulgada", "Pie",
+        // Área
+        "Metro²", "Centímetro²", "Hectárea",
+        // Volumen
+        "Litro", "Mililitro", "Metro³", "Galón",
+        // Peso
+        "Kilogramo", "Gramo", "Tonelada", "Libra", "Onza"
+    ];
+
     public CreateProductDtoValidator()
     {
         // ========== REQUIRED FIELDS ==========
@@ -18,7 +32,9 @@ public class CreateProductDtoValidator : AbstractValidator<CreateProductDto>
 
         RuleFor(x => x.UnidadMedida)
             .NotEmpty().WithMessage("La unidad de medida es requerida.")
-            .MaximumLength(50).WithMessage("La unidad de medida no puede exceder 50 caracteres.");
+            .MaximumLength(50).WithMessage("La unidad de medida no puede exceder 50 caracteres.")
+            .Must(unit => ValidUnits.Contains(unit))
+            .WithMessage($"La unidad de medida debe ser una de las siguientes: {string.Join(", ", ValidUnits)}");
 
         RuleFor(x => x.BodegaPrincipalId)
             .NotEmpty().WithMessage("La bodega principal es requerida.");
@@ -62,6 +78,7 @@ public class CreateProductDtoValidator : AbstractValidator<CreateProductDto>
 
         RuleFor(x => x.BodegasAdicionales)
             .Must(NotContainDuplicateBodegas).WithMessage("No se pueden agregar bodegas duplicadas.")
+            .Must(NotContainEmptyBodegas).WithMessage("Las bodegas adicionales no pueden tener IDs vacíos.")
             .When(x => x.BodegasAdicionales != null && x.BodegasAdicionales.Any());
 
         RuleForEach(x => x.BodegasAdicionales)
@@ -72,6 +89,7 @@ public class CreateProductDtoValidator : AbstractValidator<CreateProductDto>
 
         RuleFor(x => x.CamposExtra)
             .Must(NotContainDuplicateCampoExtraIds).WithMessage("No se pueden agregar campos extra duplicados.")
+            .Must(NotContainEmptyCamposExtra).WithMessage("Los campos extra no pueden tener IDs vacíos.")
             .When(x => x.CamposExtra != null && x.CamposExtra.Any());
 
         RuleForEach(x => x.CamposExtra)
@@ -87,12 +105,26 @@ public class CreateProductDtoValidator : AbstractValidator<CreateProductDto>
         return bodegaIds.Count == bodegaIds.Distinct().Count();
     }
 
+    private bool NotContainEmptyBodegas(List<ProductoBodegaDto>? bodegas)
+    {
+        if (bodegas == null || !bodegas.Any()) return true;
+
+        return !bodegas.Any(b => b.BodegaId == Guid.Empty);
+    }
+
     private bool NotContainDuplicateCampoExtraIds(List<ProductoCampoExtraDto>? campos)
     {
         if (campos == null || !campos.Any()) return true;
 
         var ids = campos.Select(c => c.CampoExtraId).ToList();
         return ids.Count == ids.Distinct().Count();
+    }
+
+    private bool NotContainEmptyCamposExtra(List<ProductoCampoExtraDto>? campos)
+    {
+        if (campos == null || !campos.Any()) return true;
+
+        return !campos.Any(c => c.CampoExtraId == Guid.Empty);
     }
 
     private bool BeAValidUrl(string? url)
@@ -112,7 +144,8 @@ public class ProductoBodegaDtoValidator : AbstractValidator<ProductoBodegaDto>
     public ProductoBodegaDtoValidator()
     {
         RuleFor(x => x.BodegaId)
-            .NotEmpty().WithMessage("El ID de la bodega es requerido.");
+            .NotEmpty().WithMessage("El ID de la bodega es requerido.")
+            .NotEqual(Guid.Empty).WithMessage("El ID de la bodega no puede ser vacío.");
 
         RuleFor(x => x.CantidadInicial)
             .GreaterThanOrEqualTo(0).WithMessage("La cantidad inicial no puede ser negativa.");
@@ -135,10 +168,11 @@ public class ProductoCampoExtraDtoValidator : AbstractValidator<ProductoCampoExt
     public ProductoCampoExtraDtoValidator()
     {
         RuleFor(x => x.CampoExtraId)
-            .NotEmpty().WithMessage("El ID del campo extra es requerido.");
+            .NotEmpty().WithMessage("El ID del campo extra es requerido.")
+            .NotEqual(Guid.Empty).WithMessage("El ID del campo extra no puede ser vacío.");
 
         RuleFor(x => x.Valor)
-            .NotEmpty().WithMessage("El valor del campo es requerido.")
-            .MaximumLength(500).WithMessage("El valor del campo no puede exceder 500 caracteres.");
+            .MaximumLength(500).WithMessage("El valor del campo no puede exceder 500 caracteres.")
+            .When(x => !string.IsNullOrEmpty(x.Valor));
     }
 }

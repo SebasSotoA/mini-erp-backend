@@ -5,7 +5,7 @@ namespace InventoryBack.Application.Validators;
 
 public class CreateCampoExtraDtoValidator : AbstractValidator<CreateCampoExtraDto>
 {
-    private static readonly string[] TiposDatoPermitidos = { "Texto", "Número", "Número Decimal", "Fecha", "SI/No" };
+    private static readonly string[] TiposDatoPermitidos = { "Texto", "Número", "Número Decimal", "Fecha", "Si/No" };
 
     public CreateCampoExtraDtoValidator()
     {
@@ -24,10 +24,31 @@ public class CreateCampoExtraDtoValidator : AbstractValidator<CreateCampoExtraDt
         RuleFor(x => x.Descripcion)
             .MaximumLength(1000).WithMessage("La descripción no puede exceder 1000 caracteres.")
             .When(x => !string.IsNullOrEmpty(x.Descripcion));
+
+        // Validación personalizada: ValorPorDefecto debe coincidir con TipoDato
+        RuleFor(x => x)
+            .Must(dto => ValidateValorPorDefectoMatchesTipoDato(dto, out _))
+            .WithMessage(dto => 
+            {
+                ValidateValorPorDefectoMatchesTipoDato(dto, out var errorMessage);
+                return errorMessage ?? "El valor por defecto no es compatible con el tipo de dato.";
+            })
+            .When(x => !string.IsNullOrEmpty(x.ValorPorDefecto));
     }
 
     private bool BeAValidTipoDato(string tipoDato)
     {
         return TiposDatoPermitidos.Contains(tipoDato, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private bool ValidateValorPorDefectoMatchesTipoDato(
+        CreateCampoExtraDto dto, 
+        out string? errorMessage)
+    {
+        return CampoExtraValueValidator.IsValidValorPorDefecto(
+            dto.TipoDato,
+            dto.ValorPorDefecto,
+            out errorMessage
+        );
     }
 }
