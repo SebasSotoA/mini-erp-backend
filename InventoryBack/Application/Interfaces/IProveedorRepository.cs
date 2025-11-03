@@ -21,4 +21,9 @@ public interface IProveedorRepository : IGenericRepository<Proveedor>
     /// Gets proveedor with purchase count.
     /// </summary>
     Task<(Proveedor? Proveedor, int PurchaseCount)> GetWithPurchaseCountAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets a proveedor by identificacion.
+    /// </summary>
+    Task<Proveedor?> GetByIdentificacionAsync(string identificacion, CancellationToken ct = default);
 }

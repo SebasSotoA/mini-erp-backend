@@ -4,9 +4,10 @@
 CREATE TABLE public.Bodegas (
   Id uuid NOT NULL,
   Nombre character varying NOT NULL,
-  Descripcion text,
+  Descripcion character varying,
   Activo boolean NOT NULL,
   FechaCreacion timestamp with time zone NOT NULL,
+  Direccion character varying,
   CONSTRAINT Bodegas_pkey PRIMARY KEY (Id)
 );
 CREATE TABLE public.CamposExtra (
@@ -17,15 +18,16 @@ CREATE TABLE public.CamposExtra (
   ValorPorDefecto text,
   Activo boolean NOT NULL,
   FechaCreacion timestamp with time zone NOT NULL,
+  Descripcion character varying,
   CONSTRAINT CamposExtra_pkey PRIMARY KEY (Id)
 );
 CREATE TABLE public.Categorias (
   Id uuid NOT NULL,
   Nombre character varying NOT NULL,
-  Descripcion text,
+  Descripcion character varying,
   Activo boolean NOT NULL,
   FechaCreacion timestamp with time zone NOT NULL,
-  ImagenCategoriaUrl text,
+  ImagenCategoriaUrl character varying,
   CONSTRAINT Categorias_pkey PRIMARY KEY (Id)
 );
 CREATE TABLE public.FacturasCompra (
@@ -93,16 +95,19 @@ CREATE TABLE public.MovimientosInventario (
   CostoUnitario numeric,
   PrecioUnitario numeric,
   Observacion text,
-  FacturaId uuid,
+  FacturaVentaId uuid,
+  FacturaCompraId uuid,
   CONSTRAINT MovimientosInventario_pkey PRIMARY KEY (Id),
   CONSTRAINT FK_MovimientosInventario_Bodegas_BodegaId FOREIGN KEY (BodegaId) REFERENCES public.Bodegas(Id),
-  CONSTRAINT FK_MovimientosInventario_Productos_ProductoId FOREIGN KEY (ProductoId) REFERENCES public.Productos(Id)
+  CONSTRAINT FK_MovimientosInventario_Productos_ProductoId FOREIGN KEY (ProductoId) REFERENCES public.Productos(Id),
+  CONSTRAINT FK_MovimientosInventario_FacturasCompra_FacturaCompraId FOREIGN KEY (FacturaCompraId) REFERENCES public.FacturasCompra(Id),
+  CONSTRAINT FK_MovimientosInventario_FacturasVenta_FacturaVentaId FOREIGN KEY (FacturaVentaId) REFERENCES public.FacturasVenta(Id)
 );
 CREATE TABLE public.ProductoBodegas (
   Id uuid NOT NULL,
   ProductoId uuid NOT NULL,
   BodegaId uuid NOT NULL,
-  CantidadInicial integer NOT NULL,
+  StockActual integer NOT NULL,
   CantidadMinima integer,
   CantidadMaxima integer,
   CONSTRAINT ProductoBodegas_pkey PRIMARY KEY (Id),
@@ -138,16 +143,20 @@ CREATE TABLE public.Proveedores (
   Id uuid NOT NULL,
   Nombre character varying NOT NULL,
   Identificacion character varying NOT NULL,
-  Correo text,
-  Observaciones text,
+  Correo character varying,
+  Observaciones character varying,
+  Activo boolean NOT NULL DEFAULT false,
+  FechaCreacion timestamp with time zone NOT NULL DEFAULT '-infinity'::timestamp with time zone,
   CONSTRAINT Proveedores_pkey PRIMARY KEY (Id)
 );
 CREATE TABLE public.Vendedores (
   Id uuid NOT NULL,
   Nombre character varying NOT NULL,
   Identificacion character varying NOT NULL,
-  Observaciones text,
-  Correo text,
+  Observaciones character varying,
+  Correo character varying,
+  Activo boolean NOT NULL DEFAULT false,
+  FechaCreacion timestamp with time zone NOT NULL DEFAULT '-infinity'::timestamp with time zone,
   CONSTRAINT Vendedores_pkey PRIMARY KEY (Id)
 );
 CREATE TABLE public.__EFMigrationsHistory (

@@ -49,4 +49,14 @@ public class ProveedorRepository : EfGenericRepository<Proveedor>, IProveedorRep
 
         return (proveedor, purchaseCount);
     }
+
+    public async Task<Proveedor?> GetByIdentificacionAsync(string identificacion, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(identificacion))
+            return null;
+
+        return await _dbSet
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Identificacion == identificacion, ct);
+    }
 }

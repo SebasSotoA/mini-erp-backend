@@ -19,19 +19,24 @@ public class CategoriasController : ControllerBase
     }
 
     /// <summary>
-    /// Get all categorias, optionally filtered by active status
+    /// Get all categorias with filtering, sorting, and pagination
     /// </summary>
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<IEnumerable<CategoriaDto>>>> GetAll([FromQuery] bool? activo = null, CancellationToken ct = default)
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<CategoriaDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<PagedResult<CategoriaDto>>>> GetAll(
+        [FromQuery] CategoriaFilterDto filters,
+        CancellationToken ct = default)
     {
-        var categorias = await _categoriaService.GetAllAsync(activo, ct);
-        return this.OkResponse(categorias, "Categorías obtenidas correctamente.");
+        var result = await _categoriaService.GetPagedAsync(filters, ct);
+        return this.OkResponse(result, "Categorías obtenidas correctamente.");
     }
 
     /// <summary>
     /// Get a specific categoria by ID
     /// </summary>
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<CategoriaDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiResponse<CategoriaDto>>> GetById(Guid id, CancellationToken ct = default)
     {
         var categoria = await _categoriaService.GetByIdAsync(id, ct);

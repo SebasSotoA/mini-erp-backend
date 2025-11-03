@@ -19,6 +19,9 @@ public class CreateFacturaCompraDto
     [JsonPropertyName("observaciones")]
     public string? Observaciones { get; set; }
 
+    [JsonPropertyName("total")]
+    public decimal Total { get; set; }
+
     [JsonPropertyName("items")]
     public List<CreateFacturaCompraDetalleDto> Items { get; set; } = new();
 }

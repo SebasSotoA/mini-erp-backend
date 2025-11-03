@@ -49,4 +49,14 @@ public class VendedorRepository : EfGenericRepository<Vendedor>, IVendedorReposi
 
         return (vendedor, salesCount);
     }
+
+    public async Task<Vendedor?> GetByIdentificacionAsync(string identificacion, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(identificacion))
+            return null;
+
+        return await _dbSet
+            .AsNoTracking()
+            .FirstOrDefaultAsync(v => v.Identificacion == identificacion, ct);
+    }
 }

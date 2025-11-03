@@ -1,54 +1,60 @@
 using FluentValidation;
 using InventoryBack.Application.DTOs;
+using InventoryBack.Application.Interfaces;
 
 namespace InventoryBack.Application.Validators;
 
+/// <summary>
+/// Validator for adding a product to a warehouse.
+/// </summary>
 public class AddProductoBodegaDtoValidator : AbstractValidator<AddProductoBodegaDto>
 {
     public AddProductoBodegaDtoValidator()
     {
         RuleFor(x => x.BodegaId)
-            .NotEmpty().WithMessage("El ID de la bodega es requerido.")
-            .NotEqual(Guid.Empty).WithMessage("El ID de la bodega no puede ser vacío.");
+            .NotEmpty().WithMessage("El ID de la bodega es requerido.");
 
         RuleFor(x => x.CantidadInicial)
-            .GreaterThanOrEqualTo(0).WithMessage("La cantidad inicial no puede ser negativa.");
+            .GreaterThanOrEqualTo(0).WithMessage("La cantidad inicial debe ser mayor o igual a 0.");
 
         RuleFor(x => x.CantidadMinima)
-            .GreaterThanOrEqualTo(0).WithMessage("La cantidad mínima no puede ser negativa.")
+            .GreaterThanOrEqualTo(0).WithMessage("La cantidad mínima debe ser mayor o igual a 0.")
             .When(x => x.CantidadMinima.HasValue);
 
         RuleFor(x => x.CantidadMaxima)
-            .GreaterThan(x => x.CantidadMinima ?? 0)
-            .WithMessage("La cantidad máxima debe ser mayor que la cantidad mínima.")
-            .When(x => x.CantidadMaxima.HasValue && x.CantidadMinima.HasValue);
+            .GreaterThanOrEqualTo(0).WithMessage("La cantidad máxima debe ser mayor o igual a 0.")
+            .When(x => x.CantidadMaxima.HasValue);
+
+        // Validar que CantidadMinima < CantidadMaxima
+        RuleFor(x => x)
+            .Must(x => !x.CantidadMinima.HasValue || !x.CantidadMaxima.HasValue || x.CantidadMinima.Value < x.CantidadMaxima.Value)
+            .WithMessage("La cantidad mínima debe ser menor que la cantidad máxima.")
+            .When(x => x.CantidadMinima.HasValue && x.CantidadMaxima.HasValue);
     }
 }
 
+/// <summary>
+/// Validator for updating product quantities in a warehouse.
+/// </summary>
 public class UpdateProductoBodegaDtoValidator : AbstractValidator<UpdateProductoBodegaDto>
 {
     public UpdateProductoBodegaDtoValidator()
     {
         RuleFor(x => x.CantidadInicial)
-            .GreaterThanOrEqualTo(0).WithMessage("La cantidad inicial no puede ser negativa.");
+            .GreaterThanOrEqualTo(0).WithMessage("La cantidad inicial debe ser mayor o igual a 0.");
 
         RuleFor(x => x.CantidadMinima)
-            .GreaterThanOrEqualTo(0).WithMessage("La cantidad mínima no puede ser negativa.")
+            .GreaterThanOrEqualTo(0).WithMessage("La cantidad mínima debe ser mayor o igual a 0.")
             .When(x => x.CantidadMinima.HasValue);
 
         RuleFor(x => x.CantidadMaxima)
-            .GreaterThan(x => x.CantidadMinima ?? 0)
-            .WithMessage("La cantidad máxima debe ser mayor que la cantidad mínima.")
-            .When(x => x.CantidadMaxima.HasValue && x.CantidadMinima.HasValue);
-    }
-}
+            .GreaterThanOrEqualTo(0).WithMessage("La cantidad máxima debe ser mayor o igual a 0.")
+            .When(x => x.CantidadMaxima.HasValue);
 
-public class SetProductoCampoExtraDtoValidator : AbstractValidator<SetProductoCampoExtraDto>
-{
-    public SetProductoCampoExtraDtoValidator()
-    {
-        RuleFor(x => x.Valor)
-            .NotEmpty().WithMessage("El valor es requerido.")
-            .MaximumLength(500).WithMessage("El valor no puede exceder 500 caracteres.");
+        // Validar que CantidadMinima < CantidadMaxima
+        RuleFor(x => x)
+            .Must(x => !x.CantidadMinima.HasValue || !x.CantidadMaxima.HasValue || x.CantidadMinima.Value < x.CantidadMaxima.Value)
+            .WithMessage("La cantidad mínima debe ser menor que la cantidad máxima.")
+            .When(x => x.CantidadMinima.HasValue && x.CantidadMaxima.HasValue);
     }
 }

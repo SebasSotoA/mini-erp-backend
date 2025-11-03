@@ -110,6 +110,11 @@ namespace InventoryBack.Infrastructure.Data
             {
                 entity.HasKey(pb => pb.Id);
 
+                // Índice único compuesto para prevenir duplicados
+                entity.HasIndex(pb => new { pb.ProductoId, pb.BodegaId })
+                      .IsUnique()
+                      .HasDatabaseName("IX_ProductoBodega_Producto_Bodega");
+
                 entity.HasOne<Producto>()
                       .WithMany()
                       .HasForeignKey(pb => pb.ProductoId)
@@ -294,6 +299,24 @@ namespace InventoryBack.Infrastructure.Data
                       .WithMany()
                       .HasForeignKey(mi => mi.BodegaId)
                       .OnDelete(DeleteBehavior.Restrict);
+
+                // Foreign Keys a facturas
+                entity.HasOne<FacturaVenta>()
+                      .WithMany()
+                      .HasForeignKey(mi => mi.FacturaVentaId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<FacturaCompra>()
+                      .WithMany()
+                      .HasForeignKey(mi => mi.FacturaCompraId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                // Índices para mejorar rendimiento en consultas frecuentes
+                entity.HasIndex(mi => mi.Fecha)
+                      .HasDatabaseName("IX_MovimientosInventario_Fecha");
+
+                entity.HasIndex(mi => mi.TipoMovimiento)
+                      .HasDatabaseName("IX_MovimientosInventario_TipoMovimiento");
             });
         }
 

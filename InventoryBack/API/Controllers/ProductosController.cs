@@ -11,13 +11,13 @@ namespace InventoryBack.API.Controllers;
 /// Controller for managing products.
 /// </summary>
 [ApiController]
-[Route("api/products")]
+[Route("api/productos")]
 [Produces("application/json")]
-public class ProductsController : ControllerBase
+public class ProductosController : ControllerBase
 {
     private readonly IProductService _productService;
 
-    public ProductsController(IProductService productService)
+    public ProductosController(IProductService productService)
     {
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
     }

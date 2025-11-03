@@ -1,3 +1,4 @@
+using InventoryBack.Application.DTOs;
 using InventoryBack.Domain.Entities;
 
 namespace InventoryBack.Application.Interfaces;
@@ -21,4 +22,11 @@ public interface ICampoExtraRepository : IGenericRepository<CampoExtra>
     /// <param name="ct">Cancellation token</param>
     /// <returns>List of active campos extra</returns>
     Task<IEnumerable<CampoExtra>> GetActiveCamposAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets a paginated list of campos extra with filtering and sorting.
+    /// </summary>
+    Task<(IEnumerable<CampoExtra> Items, int TotalCount)> GetPagedAsync(
+        CampoExtraFilterDto filters,
+        CancellationToken ct = default);
 }

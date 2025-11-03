@@ -66,6 +66,21 @@ public class CategoriaService : ICategoriaService
         return _mapper.Map<IEnumerable<CategoriaDto>>(categorias);
     }
 
+    public async Task<PagedResult<CategoriaDto>> GetPagedAsync(CategoriaFilterDto filters, CancellationToken ct = default)
+    {
+        var (items, totalCount) = await _unitOfWork.Categorias.GetPagedAsync(filters, ct);
+
+        var dtos = _mapper.Map<IEnumerable<CategoriaDto>>(items);
+
+        return new PagedResult<CategoriaDto>
+        {
+            Items = dtos,
+            Page = filters.Page,
+            PageSize = filters.PageSize,
+            TotalCount = totalCount
+        };
+    }
+
     public async Task UpdateAsync(Guid id, UpdateCategoriaDto dto, CancellationToken ct = default)
     {
         var categoria = await _unitOfWork.Categorias.GetByIdAsync(id, ct);

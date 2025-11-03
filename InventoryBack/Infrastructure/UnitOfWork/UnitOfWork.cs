@@ -26,7 +26,7 @@ public class UnitOfWork : IUnitOfWork
     private readonly IGenericRepository<FacturaCompraDetalle> _facturasCompraDetalle;
     private readonly IVendedorRepository _vendedores;
     private readonly IProveedorRepository _proveedores;
-    private readonly IGenericRepository<MovimientoInventario> _movimientosInventario;
+    private readonly IMovimientoInventarioRepository _movimientosInventario;
 
     public UnitOfWork(InventoryDbContext db)
     {
@@ -43,7 +43,7 @@ public class UnitOfWork : IUnitOfWork
         _facturasCompraDetalle = new EfGenericRepository<FacturaCompraDetalle>(_db);
         _vendedores = new VendedorRepository(_db);
         _proveedores = new ProveedorRepository(_db);
-        _movimientosInventario = new EfGenericRepository<MovimientoInventario>(_db);
+        _movimientosInventario = new MovimientoInventarioRepository(_db);
     }
 
     public IProductRepository Products => _products;
@@ -58,7 +58,7 @@ public class UnitOfWork : IUnitOfWork
     public IGenericRepository<FacturaCompraDetalle> FacturasCompraDetalle => _facturasCompraDetalle;
     public IVendedorRepository Vendedores => _vendedores;
     public IProveedorRepository Proveedores => _proveedores;
-    public IGenericRepository<MovimientoInventario> MovimientosInventario => _movimientosInventario;
+    public IMovimientoInventarioRepository MovimientosInventario => _movimientosInventario;
 
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)
     {

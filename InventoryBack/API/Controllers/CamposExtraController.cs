@@ -19,19 +19,24 @@ public class CamposExtraController : ControllerBase
     }
 
     /// <summary>
-    /// Get all campos extra, optionally filtered by active status
+    /// Get all campos extra with filtering, sorting, and pagination
     /// </summary>
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<IEnumerable<CampoExtraDto>>>> GetAll([FromQuery] bool? activo = null, CancellationToken ct = default)
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<CampoExtraDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<PagedResult<CampoExtraDto>>>> GetAll(
+        [FromQuery] CampoExtraFilterDto filters,
+        CancellationToken ct = default)
     {
-        var campos = await _campoExtraService.GetAllAsync(activo, ct);
-        return this.OkResponse(campos, "Campos extra obtenidos correctamente.");
+        var result = await _campoExtraService.GetPagedAsync(filters, ct);
+        return this.OkResponse(result, "Campos extra obtenidos correctamente.");
     }
 
     /// <summary>
     /// Get a specific campo extra by ID
     /// </summary>
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<CampoExtraDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiResponse<CampoExtraDto>>> GetById(Guid id, CancellationToken ct = default)
     {
         var campo = await _campoExtraService.GetByIdAsync(id, ct);

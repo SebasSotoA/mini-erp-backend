@@ -66,6 +66,21 @@ public class BodegaService : IBodegaService
         return _mapper.Map<IEnumerable<BodegaDto>>(bodegas);
     }
 
+    public async Task<PagedResult<BodegaDto>> GetPagedAsync(BodegaFilterDto filters, CancellationToken ct = default)
+    {
+        var (items, totalCount) = await _unitOfWork.Bodegas.GetPagedAsync(filters, ct);
+
+        var dtos = _mapper.Map<IEnumerable<BodegaDto>>(items);
+
+        return new PagedResult<BodegaDto>
+        {
+            Items = dtos,
+            Page = filters.Page,
+            PageSize = filters.PageSize,
+            TotalCount = totalCount
+        };
+    }
+
     public async Task UpdateAsync(Guid id, UpdateBodegaDto dto, CancellationToken ct = default)
     {
         var bodega = await _unitOfWork.Bodegas.GetByIdAsync(id, ct);

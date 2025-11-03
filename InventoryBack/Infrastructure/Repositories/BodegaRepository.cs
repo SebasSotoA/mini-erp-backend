@@ -1,3 +1,4 @@
+using InventoryBack.Application.DTOs;
 using InventoryBack.Application.Interfaces;
 using InventoryBack.Domain.Entities;
 using InventoryBack.Infrastructure.Data;
@@ -30,6 +31,34 @@ public class BodegaRepository : EfGenericRepository<Bodega>, IBodegaRepository
             .ToListAsync(ct);
     }
 
+    public async Task<(IEnumerable<Bodega> Items, int TotalCount)> GetPagedAsync(
+        BodegaFilterDto filters,
+        CancellationToken ct = default)
+    {
+        // Validate and normalize pagination
+        if (filters.Page < 1) filters.Page = 1;
+        if (filters.PageSize < 1 || filters.PageSize > 100) filters.PageSize = 20;
+
+        IQueryable<Bodega> query = _dbSet.AsNoTracking();
+
+        // Apply filters
+        query = ApplyFilters(query, filters);
+
+        // Apply ordering
+        query = ApplyOrdering(query, filters.OrderBy, filters.OrderDesc);
+
+        // Get total count
+        var totalCount = await query.CountAsync(ct);
+
+        // Apply pagination
+        var items = await query
+            .Skip((filters.Page - 1) * filters.PageSize)
+            .Take(filters.PageSize)
+            .ToListAsync(ct);
+
+        return (items, totalCount);
+    }
+
     public async Task<bool> HasProductsAsync(Guid bodegaId, CancellationToken ct = default)
     {
         return await _db.ProductoBodegas
@@ -54,5 +83,55 @@ public class BodegaRepository : EfGenericRepository<Bodega>, IBodegaRepository
     {
         return await _db.MovimientosInventario
             .AnyAsync(mi => mi.BodegaId == bodegaId, ct);
+    }
+
+    // ========== PRIVATE HELPER METHODS ==========
+
+    private IQueryable<Bodega> ApplyFilters(IQueryable<Bodega> query, BodegaFilterDto filters)
+    {
+        // Filter by nombre (partial match, case-insensitive)
+        if (!string.IsNullOrWhiteSpace(filters.Nombre))
+        {
+            var nombre = filters.Nombre.Trim().ToLower();
+            query = query.Where(b => b.Nombre.ToLower().Contains(nombre));
+        }
+
+        // Filter by direccion (partial match, case-insensitive)
+        if (!string.IsNullOrWhiteSpace(filters.Direccion))
+        {
+            var direccion = filters.Direccion.Trim().ToLower();
+            query = query.Where(b => b.Direccion != null && b.Direccion.ToLower().Contains(direccion));
+        }
+
+        // Filter by status
+        if (filters.Activo.HasValue)
+        {
+            query = query.Where(b => b.Activo == filters.Activo.Value);
+        }
+
+        return query;
+    }
+
+    private IQueryable<Bodega> ApplyOrdering(
+        IQueryable<Bodega> query,
+        string? orderBy,
+        bool orderDesc)
+    {
+        var field = orderBy?.ToLower() ?? "nombre";
+
+        return field switch
+        {
+            "direccion" => orderDesc
+                ? query.OrderByDescending(b => b.Direccion)
+                : query.OrderBy(b => b.Direccion),
+
+            "fecha" => orderDesc
+                ? query.OrderByDescending(b => b.FechaCreacion)
+                : query.OrderBy(b => b.FechaCreacion),
+
+            "nombre" or _ => orderDesc
+                ? query.OrderByDescending(b => b.Nombre)
+                : query.OrderBy(b => b.Nombre)
+        };
     }
 }

@@ -42,6 +42,7 @@ builder.Services.AddScoped<IProductoBodegaRepository, ProductoBodegaRepository>(
 builder.Services.AddScoped<ICampoExtraRepository, CampoExtraRepository>();
 builder.Services.AddScoped<IBodegaRepository, BodegaRepository>();
 builder.Services.AddScoped<ICategoriaRepository, CategoriaRepository>();
+builder.Services.AddScoped<IMovimientoInventarioRepository, MovimientoInventarioRepository>();
 
 // Unit of Work
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -55,6 +56,7 @@ builder.Services.AddScoped<IFacturaVentaService, FacturaVentaService>();
 builder.Services.AddScoped<IFacturaCompraService, FacturaCompraService>();
 builder.Services.AddScoped<IVendedorService, VendedorService>();
 builder.Services.AddScoped<IProveedorService, ProveedorService>();
+builder.Services.AddScoped<IMovimientoInventarioService, MovimientoInventarioService>();
 builder.Services.AddScoped<ISkuGeneratorService, SkuGeneratorService>();
 builder.Services.AddScoped<IStorageService, StorageService>();
 

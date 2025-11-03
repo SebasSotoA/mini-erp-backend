@@ -68,6 +68,21 @@ public class CampoExtraService : ICampoExtraService
         return _mapper.Map<IEnumerable<CampoExtraDto>>(camposExtra);
     }
 
+    public async Task<PagedResult<CampoExtraDto>> GetPagedAsync(CampoExtraFilterDto filters, CancellationToken ct = default)
+    {
+        var (items, totalCount) = await _unitOfWork.CamposExtras.GetPagedAsync(filters, ct);
+
+        var dtos = _mapper.Map<IEnumerable<CampoExtraDto>>(items);
+
+        return new PagedResult<CampoExtraDto>
+        {
+            Items = dtos,
+            Page = filters.Page,
+            PageSize = filters.PageSize,
+            TotalCount = totalCount
+        };
+    }
+
     public async Task UpdateAsync(Guid id, UpdateCampoExtraDto dto, CancellationToken ct = default)
     {
         var campoExtra = await _unitOfWork.CamposExtras.GetByIdAsync(id, ct);

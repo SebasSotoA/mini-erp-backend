@@ -242,7 +242,7 @@ public class ProductRepository : EfGenericRepository<Producto>, IProductReposito
         if (filters.CantidadExacta.HasValue)
         {
             var productIds = productoBodegaQuery
-                .Where(pb => pb.CantidadInicial == filters.CantidadExacta.Value)
+                .Where(pb => pb.StockActual == filters.CantidadExacta.Value)
                 .Select(pb => pb.ProductoId)
                 .Distinct();
 
@@ -254,12 +254,12 @@ public class ProductRepository : EfGenericRepository<Producto>, IProductReposito
         {
             var operador = filters.CantidadOperador?.ToLower() ?? ">=";
 
-            if (filters.CantidadMin.HasValue && filters.CantidadMax.HasValue)
+            if (operador == "range" && filters.CantidadMin.HasValue && filters.CantidadMax.HasValue)
             {
                 // Range filter
                 var productIds = productoBodegaQuery
-                    .Where(pb => pb.CantidadInicial >= filters.CantidadMin.Value &&
-                                 pb.CantidadInicial <= filters.CantidadMax.Value)
+                    .Where(pb => pb.StockActual >= filters.CantidadMin.Value &&
+                                 pb.StockActual <= filters.CantidadMax.Value)
                     .Select(pb => pb.ProductoId)
                     .Distinct();
 
@@ -271,27 +271,27 @@ public class ProductRepository : EfGenericRepository<Producto>, IProductReposito
                 var productIds = operador switch
                 {
                     ">" => productoBodegaQuery
-                        .Where(pb => pb.CantidadInicial > filters.CantidadMin.Value)
+                        .Where(pb => pb.StockActual > filters.CantidadMin.Value)
                         .Select(pb => pb.ProductoId)
                         .Distinct(),
                     ">=" => productoBodegaQuery
-                        .Where(pb => pb.CantidadInicial >= filters.CantidadMin.Value)
+                        .Where(pb => pb.StockActual >= filters.CantidadMin.Value)
                         .Select(pb => pb.ProductoId)
                         .Distinct(),
                     "=" => productoBodegaQuery
-                        .Where(pb => pb.CantidadInicial == filters.CantidadMin.Value)
+                        .Where(pb => pb.StockActual == filters.CantidadMin.Value)
                         .Select(pb => pb.ProductoId)
                         .Distinct(),
                     "<" => productoBodegaQuery
-                        .Where(pb => pb.CantidadInicial < filters.CantidadMin.Value)
+                        .Where(pb => pb.StockActual < filters.CantidadMin.Value)
                         .Select(pb => pb.ProductoId)
                         .Distinct(),
                     "<=" => productoBodegaQuery
-                        .Where(pb => pb.CantidadInicial <= filters.CantidadMin.Value)
+                        .Where(pb => pb.StockActual <= filters.CantidadMin.Value)
                         .Select(pb => pb.ProductoId)
                         .Distinct(),
                     _ => productoBodegaQuery
-                        .Where(pb => pb.CantidadInicial >= filters.CantidadMin.Value)
+                        .Where(pb => pb.StockActual >= filters.CantidadMin.Value)
                         .Select(pb => pb.ProductoId)
                         .Distinct()
                 };
@@ -302,7 +302,7 @@ public class ProductRepository : EfGenericRepository<Producto>, IProductReposito
             {
                 // Only max specified
                 var productIds = productoBodegaQuery
-                    .Where(pb => pb.CantidadInicial <= filters.CantidadMax.Value)
+                    .Where(pb => pb.StockActual <= filters.CantidadMax.Value)
                     .Select(pb => pb.ProductoId)
                     .Distinct();
 

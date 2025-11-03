@@ -3,6 +3,7 @@ using System;
 using InventoryBack.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace InventoryBack.Migrations
 {
     [DbContext(typeof(InventoryDbContext))]
-    partial class InventoryDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251103193226_RenameToStockActualAndAddIndexesAndFKs")]
+    partial class RenameToStockActualAndAddIndexesAndFKs
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -305,10 +308,7 @@ namespace InventoryBack.Migrations
                     b.Property<decimal?>("CostoUnitario")
                         .HasColumnType("numeric");
 
-                    b.Property<Guid?>("FacturaCompraId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("FacturaVentaId")
+                    b.Property<Guid?>("FacturaId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("Fecha")
@@ -332,17 +332,7 @@ namespace InventoryBack.Migrations
 
                     b.HasIndex("BodegaId");
 
-                    b.HasIndex("FacturaCompraId");
-
-                    b.HasIndex("FacturaVentaId");
-
-                    b.HasIndex("Fecha")
-                        .HasDatabaseName("IX_MovimientosInventario_Fecha");
-
                     b.HasIndex("ProductoId");
-
-                    b.HasIndex("TipoMovimiento")
-                        .HasDatabaseName("IX_MovimientosInventario_TipoMovimiento");
 
                     b.ToTable("MovimientosInventario");
                 });
@@ -409,6 +399,9 @@ namespace InventoryBack.Migrations
                     b.Property<Guid>("BodegaId")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("CantidadInicial")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("CantidadMaxima")
                         .HasColumnType("integer");
 
@@ -418,16 +411,11 @@ namespace InventoryBack.Migrations
                     b.Property<Guid>("ProductoId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("StockActual")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id");
 
                     b.HasIndex("BodegaId");
 
-                    b.HasIndex("ProductoId", "BodegaId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_ProductoBodega_Producto_Bodega");
+                    b.HasIndex("ProductoId");
 
                     b.ToTable("ProductoBodegas");
                 });
@@ -600,16 +588,6 @@ namespace InventoryBack.Migrations
                         .HasForeignKey("BodegaId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("InventoryBack.Domain.Entities.FacturaCompra", null)
-                        .WithMany()
-                        .HasForeignKey("FacturaCompraId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("InventoryBack.Domain.Entities.FacturaVenta", null)
-                        .WithMany()
-                        .HasForeignKey("FacturaVentaId")
-                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("InventoryBack.Domain.Entities.Producto", null)
                         .WithMany()

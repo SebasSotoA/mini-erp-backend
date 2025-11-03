@@ -21,4 +21,9 @@ public interface IVendedorRepository : IGenericRepository<Vendedor>
     /// Gets vendedor with sales count.
     /// </summary>
     Task<(Vendedor? Vendedor, int SalesCount)> GetWithSalesCountAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets a vendedor by identificacion.
+    /// </summary>
+    Task<Vendedor?> GetByIdentificacionAsync(string identificacion, CancellationToken ct = default);
 }

@@ -19,19 +19,24 @@ public class BodegasController : ControllerBase
     }
 
     /// <summary>
-    /// Get all bodegas, optionally filtered by active status
+    /// Get all bodegas with filtering, sorting, and pagination
     /// </summary>
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<IEnumerable<BodegaDto>>>> GetAll([FromQuery] bool? activo = null, CancellationToken ct = default)
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<BodegaDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<PagedResult<BodegaDto>>>> GetAll(
+        [FromQuery] BodegaFilterDto filters,
+        CancellationToken ct = default)
     {
-        var bodegas = await _bodegaService.GetAllAsync(activo, ct);
-        return this.OkResponse(bodegas, "Bodegas obtenidas correctamente.");
+        var result = await _bodegaService.GetPagedAsync(filters, ct);
+        return this.OkResponse(result, "Bodegas obtenidas correctamente.");
     }
 
     /// <summary>
     /// Get a specific bodega by ID
     /// </summary>
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<BodegaDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiResponse<BodegaDto>>> GetById(Guid id, CancellationToken ct = default)
     {
         var bodega = await _bodegaService.GetByIdAsync(id, ct);

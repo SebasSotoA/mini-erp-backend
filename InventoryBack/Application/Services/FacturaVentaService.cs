@@ -30,14 +30,19 @@ public class FacturaVentaService : IFacturaVentaService
             throw new BusinessRuleException($"La bodega '{bodega.Nombre}' está inactiva.");
         }
 
-        // Validate: Vendedor exists
+        // Validate: Vendedor exists and is active
         var vendedor = await _unitOfWork.Vendedores.GetByIdAsync(dto.VendedorId, ct);
         if (vendedor == null)
         {
             throw new NotFoundException("Vendedor", dto.VendedorId);
         }
 
-        // Validate: All products exist and have stock
+        if (!vendedor.Activo)
+        {
+            throw new BusinessRuleException($"El vendedor '{vendedor.Nombre}' está inactivo.");
+        }
+
+        // Validate: All products exist, are active, and have sufficient stock
         foreach (var item in dto.Items)
         {
             var producto = await _unitOfWork.Products.GetByIdAsync(item.ProductoId, ct);
@@ -51,16 +56,18 @@ public class FacturaVentaService : IFacturaVentaService
                 throw new BusinessRuleException($"El producto '{producto.Nombre}' está inactivo.");
             }
 
-            // Check stock in bodega
+            // Check stock in bodega - VALIDACIÓN CRÍTICA
             var productoBodega = await _unitOfWork.ProductoBodegas.GetByProductAndBodegaAsync(item.ProductoId, dto.BodegaId, ct);
             if (productoBodega == null)
             {
                 throw new BusinessRuleException($"El producto '{producto.Nombre}' no está disponible en la bodega '{bodega.Nombre}'.");
             }
 
-            if (productoBodega.CantidadInicial < item.Cantidad)
+            if (productoBodega.StockActual < item.Cantidad)
             {
-                throw new BusinessRuleException($"Stock insuficiente para el producto '{producto.Nombre}'. Disponible: {productoBodega.CantidadInicial}, Solicitado: {item.Cantidad}");
+                throw new BusinessRuleException(
+                    $"Stock insuficiente para el producto '{producto.Nombre}'. " +
+                    $"Disponible: {productoBodega.StockActual}, Solicitado: {item.Cantidad}");
             }
         }
 
@@ -81,7 +88,7 @@ public class FacturaVentaService : IFacturaVentaService
             PlazoPago = dto.PlazoPago,
             MedioPago = dto.MedioPago,
             Observaciones = dto.Observaciones?.Trim(),
-            Estado = "Completada", // ? Estado inicial
+            Estado = "Completada",
             Total = 0 // Se calculará
         };
 
@@ -118,26 +125,27 @@ public class FacturaVentaService : IFacturaVentaService
 
             await _unitOfWork.FacturasVentaDetalle.AddAsync(detalle, ct);
 
-            // Update stock
+            // ========== ACTUALIZAR STOCK (CRÍTICO) ==========
             var productoBodega = await _unitOfWork.ProductoBodegas.GetByProductAndBodegaAsync(itemDto.ProductoId, dto.BodegaId, ct);
             if (productoBodega != null)
             {
-                productoBodega.CantidadInicial -= itemDto.Cantidad;
+                productoBodega.StockActual -= itemDto.Cantidad;
                 _unitOfWork.ProductoBodegas.Update(productoBodega);
             }
 
-            // Create inventory movement
+            // ========== CREATE INVENTORY MOVEMENT (TRAZABILIDAD) ==========
             var movimiento = new MovimientoInventario
             {
                 Id = Guid.NewGuid(),
                 ProductoId = itemDto.ProductoId,
                 BodegaId = dto.BodegaId,
                 Fecha = dto.Fecha,
-                TipoMovimiento = "Venta",
-                Cantidad = -itemDto.Cantidad, // Negativo porque es salida
+                TipoMovimiento = "SALIDA",
+                Cantidad = itemDto.Cantidad, // Positivo, el tipo indica si es entrada/salida
                 PrecioUnitario = itemDto.PrecioUnitario,
                 Observacion = $"Venta - Factura {numeroFactura}",
-                FacturaId = factura.Id
+                FacturaVentaId = factura.Id,
+                FacturaCompraId = null
             };
 
             await _unitOfWork.MovimientosInventario.AddAsync(movimiento, ct);
@@ -210,14 +218,14 @@ public class FacturaVentaService : IFacturaVentaService
                 $"Esta factura está en estado '{factura.Estado}'.");
         }
 
-        // Restore stock
+        // ========== RESTORE STOCK (CRÍTICO) ==========
         var detalles = await _unitOfWork.FacturasVenta.GetDetallesAsync(id, ct);
         foreach (var detalle in detalles)
         {
             var productoBodega = await _unitOfWork.ProductoBodegas.GetByProductAndBodegaAsync(detalle.ProductoId, factura.BodegaId, ct);
             if (productoBodega != null)
             {
-                productoBodega.CantidadInicial += detalle.Cantidad;
+                productoBodega.StockActual += detalle.Cantidad;
                 _unitOfWork.ProductoBodegas.Update(productoBodega);
             }
 
@@ -228,11 +236,12 @@ public class FacturaVentaService : IFacturaVentaService
                 ProductoId = detalle.ProductoId,
                 BodegaId = factura.BodegaId,
                 Fecha = DateTime.UtcNow,
-                TipoMovimiento = "Anulación Venta",
-                Cantidad = detalle.Cantidad, // Positivo porque devuelve stock
+                TipoMovimiento = "AJUSTE_POSITIVO",
+                Cantidad = detalle.Cantidad,
                 PrecioUnitario = detalle.PrecioUnitario,
                 Observacion = $"Anulación de venta - Factura {factura.NumeroFactura}",
-                FacturaId = factura.Id
+                FacturaVentaId = factura.Id,
+                FacturaCompraId = null
             };
 
             await _unitOfWork.MovimientosInventario.AddAsync(movimiento, ct);

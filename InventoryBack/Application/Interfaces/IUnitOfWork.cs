@@ -40,7 +40,7 @@ public interface IUnitOfWork : IDisposable
     IGenericRepository<FacturaCompraDetalle> FacturasCompraDetalle { get; }
     IVendedorRepository Vendedores { get; }
     IProveedorRepository Proveedores { get; }
-    IGenericRepository<MovimientoInventario> MovimientosInventario { get; }
+    IMovimientoInventarioRepository MovimientosInventario { get; }
 
     /// <summary>
     /// Saves all pending changes to the database.

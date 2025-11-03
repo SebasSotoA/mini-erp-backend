@@ -109,7 +109,7 @@ public class ProductService : IProductService
             Id = Guid.NewGuid(),
             ProductoId = producto.Id,
             BodegaId = dto.BodegaPrincipalId,
-            CantidadInicial = dto.CantidadInicial,
+            StockActual = dto.CantidadInicial, // Mapeo: DTO.CantidadInicial ? Entity.StockActual
             CantidadMinima = null,
             CantidadMaxima = null
         };
@@ -184,7 +184,7 @@ public class ProductService : IProductService
                         Id = Guid.NewGuid(),
                         ProductoId = producto.Id,
                         BodegaId = bodegaDto.BodegaId,
-                        CantidadInicial = bodegaDto.CantidadInicial,
+                        StockActual = bodegaDto.CantidadInicial, // Mapeo: DTO.CantidadInicial ? Entity.StockActual
                         CantidadMinima = bodegaDto.CantidadMinima,
                         CantidadMaxima = bodegaDto.CantidadMaxima
                     };
@@ -462,7 +462,7 @@ public class ProductService : IProductService
             Id = Guid.NewGuid(),
             ProductoId = productId,
             BodegaId = dto.BodegaId,
-            CantidadInicial = dto.CantidadInicial,
+            StockActual = dto.CantidadInicial, // Mapeo: DTO.CantidadInicial ? Entity.StockActual
             CantidadMinima = dto.CantidadMinima,
             CantidadMaxima = dto.CantidadMaxima
         };
@@ -488,7 +488,7 @@ public class ProductService : IProductService
         }
 
         // Update quantities
-        productoBodega.CantidadInicial = dto.CantidadInicial;
+        productoBodega.StockActual = dto.CantidadInicial; // Mapeo: DTO.CantidadInicial ? Entity.StockActual
         productoBodega.CantidadMinima = dto.CantidadMinima;
         productoBodega.CantidadMaxima = dto.CantidadMaxima;
 
@@ -546,7 +546,7 @@ public class ProductService : IProductService
                     BodegaId = pb.BodegaId,
                     BodegaNombre = bodega.Nombre,
                     BodegaDireccion = bodega.Direccion,
-                    CantidadInicial = pb.CantidadInicial,
+                    CantidadInicial = pb.StockActual, // Mapeo inverso: Entity.StockActual ? DTO.CantidadInicial
                     CantidadMinima = pb.CantidadMinima,
                     CantidadMaxima = pb.CantidadMaxima
                 });

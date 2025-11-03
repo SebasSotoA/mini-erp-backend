@@ -30,14 +30,19 @@ public class FacturaCompraService : IFacturaCompraService
             throw new BusinessRuleException($"La bodega '{bodega.Nombre}' está inactiva.");
         }
 
-        // Validate: Proveedor exists
+        // Validate: Proveedor exists and is active
         var proveedor = await _unitOfWork.Proveedores.GetByIdAsync(dto.ProveedorId, ct);
         if (proveedor == null)
         {
             throw new NotFoundException("Proveedor", dto.ProveedorId);
         }
 
-        // Validate: All products exist
+        if (!proveedor.Activo)
+        {
+            throw new BusinessRuleException($"El proveedor '{proveedor.Nombre}' está inactivo.");
+        }
+
+        // Validate: All products exist and are active
         foreach (var item in dto.Items)
         {
             var producto = await _unitOfWork.Products.GetByIdAsync(item.ProductoId, ct);
@@ -66,7 +71,7 @@ public class FacturaCompraService : IFacturaCompraService
             ProveedorId = dto.ProveedorId,
             Fecha = dto.Fecha,
             Observaciones = dto.Observaciones?.Trim(),
-            Estado = "Completada", // ? Estado inicial
+            Estado = "Completada",
             Total = 0 // Se calculará
         };
 
@@ -103,11 +108,11 @@ public class FacturaCompraService : IFacturaCompraService
 
             await _unitOfWork.FacturasCompraDetalle.AddAsync(detalle, ct);
 
-            // Update stock
+            // ========== ACTUALIZAR STOCK (CRÍTICO) ==========
             var productoBodega = await _unitOfWork.ProductoBodegas.GetByProductAndBodegaAsync(itemDto.ProductoId, dto.BodegaId, ct);
             if (productoBodega != null)
             {
-                productoBodega.CantidadInicial += itemDto.Cantidad;
+                productoBodega.StockActual += itemDto.Cantidad;
                 _unitOfWork.ProductoBodegas.Update(productoBodega);
             }
             else
@@ -118,25 +123,26 @@ public class FacturaCompraService : IFacturaCompraService
                     Id = Guid.NewGuid(),
                     ProductoId = itemDto.ProductoId,
                     BodegaId = dto.BodegaId,
-                    CantidadInicial = itemDto.Cantidad,
+                    StockActual = itemDto.Cantidad,
                     CantidadMinima = null,
                     CantidadMaxima = null
                 };
                 await _unitOfWork.ProductoBodegas.AddAsync(newProductoBodega, ct);
             }
 
-            // Create inventory movement
+            // ========== CREATE INVENTORY MOVEMENT (TRAZABILIDAD) ==========
             var movimiento = new MovimientoInventario
             {
                 Id = Guid.NewGuid(),
                 ProductoId = itemDto.ProductoId,
                 BodegaId = dto.BodegaId,
                 Fecha = dto.Fecha,
-                TipoMovimiento = "Compra",
-                Cantidad = itemDto.Cantidad, // Positivo porque es entrada
+                TipoMovimiento = "ENTRADA",
+                Cantidad = itemDto.Cantidad, // Positivo, el tipo indica si es entrada/salida
                 CostoUnitario = itemDto.CostoUnitario,
                 Observacion = $"Compra - Factura {numeroFactura}",
-                FacturaId = factura.Id
+                FacturaVentaId = null,
+                FacturaCompraId = factura.Id
             };
 
             await _unitOfWork.MovimientosInventario.AddAsync(movimiento, ct);
@@ -206,17 +212,17 @@ public class FacturaCompraService : IFacturaCompraService
         {
             throw new BusinessRuleException(
                 $"Solo se pueden anular facturas en estado 'Completada'. " +
-                $"Esta factura está en estado '{factura.Estado}'.");
+                $"Esta factura está en estado '{factura.Estado}'."); 
         }
 
-        // Restore stock
+        // ========== RESTORE STOCK (CRÍTICO) ==========
         var detalles = await _unitOfWork.FacturasCompra.GetDetallesAsync(id, ct);
         foreach (var detalle in detalles)
         {
             var productoBodega = await _unitOfWork.ProductoBodegas.GetByProductAndBodegaAsync(detalle.ProductoId, factura.BodegaId, ct);
             if (productoBodega != null)
             {
-                productoBodega.CantidadInicial -= detalle.Cantidad;
+                productoBodega.StockActual -= detalle.Cantidad;
                 _unitOfWork.ProductoBodegas.Update(productoBodega);
             }
 
@@ -227,17 +233,18 @@ public class FacturaCompraService : IFacturaCompraService
                 ProductoId = detalle.ProductoId,
                 BodegaId = factura.BodegaId,
                 Fecha = DateTime.UtcNow,
-                TipoMovimiento = "Anulación Compra",
-                Cantidad = -detalle.Cantidad, // Negativo porque devuelve stock
+                TipoMovimiento = "AJUSTE_NEGATIVO",
+                Cantidad = detalle.Cantidad,
                 CostoUnitario = detalle.CostoUnitario,
                 Observacion = $"Anulación de compra - Factura {factura.NumeroFactura}",
-                FacturaId = factura.Id
+                FacturaVentaId = null,
+                FacturaCompraId = factura.Id
             };
 
             await _unitOfWork.MovimientosInventario.AddAsync(movimiento, ct);
         }
 
-        // ========== SOFT DELETE: Cambiar estado a Anulada (NO eliminar físicamente) =========
+        // ========== SOFT DELETE: Cambiar estado a Anulada (NO eliminar físicamente) ==========
         factura.Estado = "Anulada";
         _unitOfWork.FacturasCompra.Update(factura);
 
