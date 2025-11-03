@@ -138,3 +138,4 @@ For the first iteration, produce these files (one per file) with full code:
 - Keep code compilable; include necessary using statements.
 - Show brief instructions to wire up DI and how to run migrations locally.
 - After delivering iteration 1, wait for further prompts to implement invoices, purchases, and stock flows.
+- Reports in the next sprints will be handled later.
