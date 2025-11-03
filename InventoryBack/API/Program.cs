@@ -83,14 +83,12 @@ var app = builder.Build();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    app.MapScalarApiReference(options =>
-        options.WithTitle("API de Inventario SCM")
-        .WithTheme(ScalarTheme.DeepSpace)
-        .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.Http));
-}
+// Enable Scalar in both Development and Production (Azure)
+app.MapOpenApi();
+app.MapScalarApiReference(options =>
+    options.WithTitle("API de Inventario SCM")
+    .WithTheme(ScalarTheme.DeepSpace)
+    .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.Http));
 
 app.UseHttpsRedirection();
 
