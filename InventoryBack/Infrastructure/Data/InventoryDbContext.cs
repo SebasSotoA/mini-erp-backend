@@ -13,24 +13,24 @@ namespace InventoryBack.Infrastructure.Data
         public DbSet<Producto> Productos { get; set; }
         public DbSet<Categoria> Categorias { get; set; }
         public DbSet<Bodega> Bodegas { get; set; }
-        public DbSet<ProductoBodega> ProductoBodegas { get; set; }
+        public DbSet<ProductoBodega> ProductoBodegas => Set<ProductoBodega>();
         public DbSet<CampoExtra> CamposExtra { get; set; }
-        public DbSet<ProductoCampoExtra> ProductoCamposExtra { get; set; }
+        public DbSet<ProductoCampoExtra> ProductoCamposExtra => Set<ProductoCampoExtra>();
 
         // --- Módulo de Ventas ---
-        public DbSet<FacturaVenta> FacturasVenta { get; set; }
-        public DbSet<FacturaVentaDetalle> FacturasVentaDetalle { get; set; }
+        public DbSet<FacturaVenta> FacturasVenta => Set<FacturaVenta>();
+        public DbSet<FacturaVentaDetalle> FacturasVentaDetalle => Set<FacturaVentaDetalle>();
 
         // --- Módulo de Compras ---
-        public DbSet<FacturaCompra> FacturasCompra { get; set; }
-        public DbSet<FacturaCompraDetalle> FacturasCompraDetalle { get; set; }
+        public DbSet<FacturaCompra> FacturasCompra => Set<FacturaCompra>();
+        public DbSet<FacturaCompraDetalle> FacturasCompraDetalle => Set<FacturaCompraDetalle>();
 
         // --- Entidades de Soporte ---
-        public DbSet<Proveedor> Proveedores { get; set; }
-        public DbSet<Vendedor> Vendedores { get; set; }
+        public DbSet<Vendedor> Vendedores => Set<Vendedor>();
+        public DbSet<Proveedor> Proveedores => Set<Proveedor>();
 
         // --- Movimientos de Inventario ---
-        public DbSet<MovimientoInventario> MovimientosInventario { get; set; }
+        public DbSet<MovimientoInventario> MovimientosInventario => Set<MovimientoInventario>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -160,6 +160,11 @@ namespace InventoryBack.Infrastructure.Data
                 entity.HasKey(p => p.Id);
                 entity.Property(p => p.Nombre).IsRequired().HasMaxLength(150);
                 entity.Property(p => p.Identificacion).IsRequired().HasMaxLength(100);
+                entity.Property(p => p.Correo).HasMaxLength(150);
+                entity.Property(p => p.Observaciones).HasMaxLength(1000);
+                entity.Property(p => p.Activo).IsRequired();
+                entity.Property(p => p.FechaCreacion).IsRequired();
+                entity.HasIndex(p => p.Identificacion).IsUnique();
             });
 
             // === VENDEDORES ===
@@ -168,6 +173,11 @@ namespace InventoryBack.Infrastructure.Data
                 entity.HasKey(v => v.Id);
                 entity.Property(v => v.Nombre).IsRequired().HasMaxLength(150);
                 entity.Property(v => v.Identificacion).IsRequired().HasMaxLength(100);
+                entity.Property(v => v.Correo).HasMaxLength(150);
+                entity.Property(v => v.Observaciones).HasMaxLength(1000);
+                entity.Property(v => v.Activo).IsRequired();
+                entity.Property(v => v.FechaCreacion).IsRequired();
+                entity.HasIndex(v => v.Identificacion).IsUnique();
             });
 
             // === FACTURAS DE VENTA ===

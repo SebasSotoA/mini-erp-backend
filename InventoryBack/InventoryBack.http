@@ -411,6 +411,26 @@ Content-Type: application/json
 
 ###
 
+### ?? INVALID: Missing required campos extra (should fail)
+POST {{InventoryBack_HostAddress}}/api/products
+Content-Type: application/json
+
+{
+  "nombre": "Celular Apple IPhone 16 Pro Max",
+  "unidadMedida": "Unidad",
+  "bodegaPrincipalId": "{{bodegaId}}",
+  "precioBase": 1500000,
+  "costoInicial": 560000,
+  "cantidadInicial": 10,
+  "impuestoPorcentaje": 0.05,
+  "categoriaId": "{{categoriaId}}",
+  "codigoSku": "CEL-IPH-001",
+  "descripcion": "Celular IPhone 16 Pro Max de 512GB pantalla OLED",
+  "camposExtra": []
+}
+
+###
+
 ### ?? INVALID: Invalid unit of measure (should fail)
 POST {{InventoryBack_HostAddress}}/api/products
 Content-Type: application/json
@@ -450,63 +470,155 @@ DELETE {{InventoryBack_HostAddress}}/api/products/{{productId}}/permanent
 
 ###
 
-### ========== PRODUCT WAREHOUSES MANAGEMENT ==========
+### ========== FACTURAS DE VENTA ==========
 
-### Get all warehouses for a product
-GET {{InventoryBack_HostAddress}}/api/products/{{productId}}/bodegas
+@vendedorId = PUT-VENDEDOR-ID-HERE
+@bodegaId1 = PUT-BODEGA-ID-HERE
+@productoId1 = PUT-PRODUCTO-ID-HERE
+@productoId2 = PUT-PRODUCTO-ID-HERE
+
+### Get all facturas de venta
+GET {{InventoryBack_HostAddress}}/api/facturas-venta
 Accept: application/json
 
 ###
 
-### Add product to additional warehouse
-POST {{InventoryBack_HostAddress}}/api/products/{{productId}}/bodegas
-Content-Type: application/json
-
-{
-  "bodegaId": "{{bodegaId2}}",
-  "cantidadInicial": 15,
-  "cantidadMinima": 5,
-  "cantidadMaxima": 50
-}
-
-###
-
-### Update product quantities in a warehouse
-PUT {{InventoryBack_HostAddress}}/api/products/{{productId}}/bodegas/{{bodegaId2}}
-Content-Type: application/json
-
-{
-  "cantidadInicial": 20,
-  "cantidadMinima": 10,
-  "cantidadMaxima": 60
-}
-
-###
-
-### Remove product from warehouse
-DELETE {{InventoryBack_HostAddress}}/api/products/{{productId}}/bodegas/{{bodegaId2}}
-
-###
-
-### ========== PRODUCT EXTRA FIELDS MANAGEMENT ==========
-
-### Get all extra fields for a product
-GET {{InventoryBack_HostAddress}}/api/products/{{productId}}/campos-extra
+### Get factura de venta by ID
+GET {{InventoryBack_HostAddress}}/api/facturas-venta/{{facturaVentaId}}
 Accept: application/json
 
 ###
 
-### Set/Update extra field for product
-PUT {{InventoryBack_HostAddress}}/api/products/{{productId}}/campos-extra/{{campoExtraGarantiaId}}
+### Create factura de venta - Contado
+POST {{InventoryBack_HostAddress}}/api/facturas-venta
 Content-Type: application/json
 
 {
-  "valor": "36 meses"
+  "bodegaId": "{{bodegaId1}}",
+  "vendedorId": "{{vendedorId}}",
+  "fecha": "2024-01-15T10:30:00",
+  "formaPago": "Contado",
+  "medioPago": "Efectivo",
+  "observaciones": "Venta de contado",
+  "items": [
+    {
+      "productoId": "{{productoId1}}",
+      "cantidad": 2,
+      "precioUnitario": 1500.00,
+      "descuento": 100.00,
+      "impuesto": 285.00
+    },
+    {
+      "productoId": "{{productoId2}}",
+      "cantidad": 1,
+      "precioUnitario": 800.00,
+      "descuento": 0,
+      "impuesto": 152.00
+    }
+  ]
 }
 
 ###
 
-### Remove extra field from product
-DELETE {{InventoryBack_HostAddress}}/api/products/{{productId}}/campos-extra/{{campoExtraGarantiaId}}
+### Create factura de venta - Crédito
+POST {{InventoryBack_HostAddress}}/api/facturas-venta
+Content-Type: application/json
+
+{
+  "bodegaId": "{{bodegaId1}}",
+  "vendedorId": "{{vendedorId}}",
+  "fecha": "2024-01-15T11:00:00",
+  "formaPago": "Crédito",
+  "plazoPago": 30,
+  "medioPago": "Transferencia Bancaria",
+  "observaciones": "Cliente frecuente - 30 días",
+  "items": [
+    {
+      "productoId": "{{productoId1}}",
+      "cantidad": 5,
+      "precioUnitario": 1500.00,
+      "descuento": 500.00,
+      "impuesto": 712.50
+    }
+  ]
+}
+
+###
+
+### Anular factura de venta (Soft Delete - solo si Estado = Completada)
+DELETE {{InventoryBack_HostAddress}}/api/facturas-venta/{{facturaVentaId}}
+
+###
+
+### ?? ERROR: Intentar anular factura ya anulada (should fail)
+DELETE {{InventoryBack_HostAddress}}/api/facturas-venta/{{facturaVentaIdAnulada}}
+
+###
+
+### ========== TEST: VALIDACIÓN DE STOCK ==========
+
+### ? Test: Venta con stock SUFICIENTE (debe funcionar)
+POST {{InventoryBack_HostAddress}}/api/facturas-venta
+Content-Type: application/json
+
+{
+  "bodegaId": "{{bodegaId1}}",
+  "vendedorId": "{{vendedorId}}",
+  "fecha": "2024-01-15T10:00:00",
+  "formaPago": "Contado",
+  "medioPago": "Efectivo",
+  "items": [
+    {
+      "productoId": "{{productoId1}}",
+      "cantidad": 2,
+      "precioUnitario": 1500.00,
+      "descuento": 0,
+      "impuesto": 285.00
+    }
+  ]
+}
+
+###
+
+### ? Test: Venta con stock INSUFICIENTE (debe fallar con 400)
+# Este test debe devolver: "Stock insuficiente para el producto 'X'. Disponible: N, Solicitado: 999999"
+POST {{InventoryBack_HostAddress}}/api/facturas-venta
+Content-Type: application/json
+
+{
+  "bodegaId": "{{bodegaId1}}",
+  "vendedorId": "{{vendedorId}}",
+  "fecha": "2024-01-15T10:00:00",
+  "formaPago": "Contado",
+  "medioPago": "Efectivo",
+  "items": [
+    {
+      "productoId": "{{productoId1}}",
+      "cantidad": 999999,
+      "precioUnitario": 1500.00
+    }
+  ]
+}
+
+###
+
+### ? Test: Producto NO existe en bodega (debe fallar con 400)
+POST {{InventoryBack_HostAddress}}/api/facturas-venta
+Content-Type: application/json
+
+{
+  "bodegaId": "{{bodegaId1}}",
+  "vendedorId": "{{vendedorId}}",
+  "fecha": "2024-01-15T10:00:00",
+  "formaPago": "Contado",
+  "medioPago": "Efectivo",
+  "items": [
+    {
+      "productoId": "{{productoId2}}",
+      "cantidad": 1,
+      "precioUnitario": 1500.00
+    }
+  ]
+}
 
 ###

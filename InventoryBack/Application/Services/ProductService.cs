@@ -116,7 +116,33 @@ public class ProductService : IProductService
 
         await _unitOfWork.ProductoBodegas.AddAsync(mainProductoBodega, ct);
 
-        // ========== 5. CREATE ADDITIONAL WAREHOUSE RELATIONSHIPS (IF PROVIDED) ==========
+        // ========== 5. VALIDATE REQUIRED EXTRA FIELDS ==========
+
+        // Get all required campos extra
+        var requiredCampos = await _unitOfWork.CamposExtras.ListAsync(
+            filter: ce => ce.EsRequerido && ce.Activo,
+            ct: ct);
+
+        if (requiredCampos.Any())
+        {
+            var providedCampoIds = dto.CamposExtra?
+                .Where(c => c.CampoExtraId != Guid.Empty && !string.IsNullOrWhiteSpace(c.Valor))
+                .Select(c => c.CampoExtraId)
+                .ToHashSet() ?? new HashSet<Guid>();
+
+            var missingCampos = requiredCampos
+                .Where(rc => !providedCampoIds.Contains(rc.Id))
+                .ToList();
+
+            if (missingCampos.Any())
+            {
+                var missingNames = string.Join(", ", missingCampos.Select(c => $"'{c.Nombre}'"));
+                throw new BusinessRuleException(
+                    $"Los siguientes campos son requeridos y deben tener un valor: {missingNames}.");
+            }
+        }
+
+        // ========== 6. CREATE ADDITIONAL WAREHOUSE RELATIONSHIPS (IF PROVIDED) ==========
 
         if (dto.BodegasAdicionales != null && dto.BodegasAdicionales.Any())
         {
@@ -168,7 +194,7 @@ public class ProductService : IProductService
             }
         }
 
-        // ========== 6. LINK EXTRA FIELDS (IF PROVIDED) ==========
+        // ========== 7. LINK EXTRA FIELDS (IF PROVIDED) ==========
 
         if (dto.CamposExtra != null && dto.CamposExtra.Any())
         {
@@ -235,11 +261,11 @@ public class ProductService : IProductService
             }
         }
 
-        // ========== 7. SAVE ALL CHANGES ==========
+        // ========== 8. SAVE ALL CHANGES ==========
 
         await _unitOfWork.SaveChangesAsync(ct);
 
-        // ========== 8. RETURN PRODUCT DTO ==========
+        // ========== 9. RETURN PRODUCT DTO ==========
 
         return _mapper.Map<ProductDto>(producto);
     }

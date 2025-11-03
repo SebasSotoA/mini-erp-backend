@@ -14,29 +14,33 @@ public interface IUnitOfWork : IDisposable
     IProductRepository Products { get; }
 
     /// <summary>
-    /// ProductoBodega repository (with specific queries)
-    /// </summary>
-    IProductoBodegaRepository ProductoBodegas { get; }
-
-    /// <summary>
-    /// Category repository (with specific queries)
+    /// Categoria repository
     /// </summary>
     ICategoriaRepository Categorias { get; }
 
     /// <summary>
-    /// Warehouse (Bodega) repository (with specific queries)
+    /// Bodega repository
     /// </summary>
     IBodegaRepository Bodegas { get; }
 
     /// <summary>
-    /// Extra field repository (with specific queries)
+    /// CampoExtra repository
     /// </summary>
     ICampoExtraRepository CamposExtras { get; }
 
     /// <summary>
-    /// Product-Extra field repository
+    /// ProductoBodega repository (with specific queries)
     /// </summary>
+    IProductoBodegaRepository ProductoBodegas { get; }
+    
     IGenericRepository<ProductoCampoExtra> ProductoCamposExtras { get; }
+    IFacturaVentaRepository FacturasVenta { get; }
+    IFacturaCompraRepository FacturasCompra { get; }
+    IGenericRepository<FacturaVentaDetalle> FacturasVentaDetalle { get; }
+    IGenericRepository<FacturaCompraDetalle> FacturasCompraDetalle { get; }
+    IVendedorRepository Vendedores { get; }
+    IProveedorRepository Proveedores { get; }
+    IGenericRepository<MovimientoInventario> MovimientosInventario { get; }
 
     /// <summary>
     /// Saves all pending changes to the database.

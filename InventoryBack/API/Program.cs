@@ -48,10 +48,15 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Application Services
 builder.Services.AddScoped<IProductService, ProductService>();
-builder.Services.AddScoped<ICampoExtraService, CampoExtraService>();
-builder.Services.AddScoped<IBodegaService, BodegaService>();
 builder.Services.AddScoped<ICategoriaService, CategoriaService>();
+builder.Services.AddScoped<IBodegaService, BodegaService>();
+builder.Services.AddScoped<ICampoExtraService, CampoExtraService>();
+builder.Services.AddScoped<IFacturaVentaService, FacturaVentaService>();
+builder.Services.AddScoped<IFacturaCompraService, FacturaCompraService>();
+builder.Services.AddScoped<IVendedorService, VendedorService>();
+builder.Services.AddScoped<IProveedorService, ProveedorService>();
 builder.Services.AddScoped<ISkuGeneratorService, SkuGeneratorService>();
+builder.Services.AddScoped<IStorageService, StorageService>();
 
 // HttpClient for StorageService
 builder.Services.AddHttpClient();
@@ -63,6 +68,10 @@ builder.Services.AddAutoMapper(typeof(Program).Assembly);
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateProductDtoValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<AddProductoBodegaDtoValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateFacturaVentaDtoValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateFacturaCompraDtoValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateVendedorDtoValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateProveedorDtoValidator>();
 
 var app = builder.Build();
 

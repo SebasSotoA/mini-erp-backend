@@ -14,30 +14,51 @@ public class UnitOfWork : IUnitOfWork
     private readonly InventoryDbContext _db;
     private bool _disposed;
 
-    public UnitOfWork(
-        InventoryDbContext db,
-        IProductRepository productRepository,
-        IProductoBodegaRepository productoBodegaRepository,
-        ICategoriaRepository categoriaRepository,
-        IBodegaRepository bodegaRepository,
-        ICampoExtraRepository campoExtraRepository,
-        IGenericRepository<ProductoCampoExtra> productoCampoExtraRepository)
+    private readonly IProductRepository _products;
+    private readonly ICategoriaRepository _categorias;
+    private readonly IBodegaRepository _bodegas;
+    private readonly ICampoExtraRepository _camposExtras;
+    private readonly IProductoBodegaRepository _productoBodegas;
+    private readonly IGenericRepository<ProductoCampoExtra> _productoCamposExtras;
+    private readonly IFacturaVentaRepository _facturasVenta;
+    private readonly IFacturaCompraRepository _facturasCompra;
+    private readonly IGenericRepository<FacturaVentaDetalle> _facturasVentaDetalle;
+    private readonly IGenericRepository<FacturaCompraDetalle> _facturasCompraDetalle;
+    private readonly IVendedorRepository _vendedores;
+    private readonly IProveedorRepository _proveedores;
+    private readonly IGenericRepository<MovimientoInventario> _movimientosInventario;
+
+    public UnitOfWork(InventoryDbContext db)
     {
         _db = db ?? throw new ArgumentNullException(nameof(db));
-        Products = productRepository ?? throw new ArgumentNullException(nameof(productRepository));
-        ProductoBodegas = productoBodegaRepository ?? throw new ArgumentNullException(nameof(productoBodegaRepository));
-        Categorias = categoriaRepository ?? throw new ArgumentNullException(nameof(categoriaRepository));
-        Bodegas = bodegaRepository ?? throw new ArgumentNullException(nameof(bodegaRepository));
-        CamposExtras = campoExtraRepository ?? throw new ArgumentNullException(nameof(campoExtraRepository));
-        ProductoCamposExtras = productoCampoExtraRepository ?? throw new ArgumentNullException(nameof(productoCampoExtraRepository));
+        _products = new ProductRepository(_db);
+        _categorias = new CategoriaRepository(_db);
+        _bodegas = new BodegaRepository(_db);
+        _camposExtras = new CampoExtraRepository(_db);
+        _productoBodegas = new ProductoBodegaRepository(_db);
+        _productoCamposExtras = new EfGenericRepository<ProductoCampoExtra>(_db);
+        _facturasVenta = new FacturaVentaRepository(_db);
+        _facturasCompra = new FacturaCompraRepository(_db);
+        _facturasVentaDetalle = new EfGenericRepository<FacturaVentaDetalle>(_db);
+        _facturasCompraDetalle = new EfGenericRepository<FacturaCompraDetalle>(_db);
+        _vendedores = new VendedorRepository(_db);
+        _proveedores = new ProveedorRepository(_db);
+        _movimientosInventario = new EfGenericRepository<MovimientoInventario>(_db);
     }
 
-    public IProductRepository Products { get; }
-    public IProductoBodegaRepository ProductoBodegas { get; }
-    public ICategoriaRepository Categorias { get; }
-    public IBodegaRepository Bodegas { get; }
-    public ICampoExtraRepository CamposExtras { get; }
-    public IGenericRepository<ProductoCampoExtra> ProductoCamposExtras { get; }
+    public IProductRepository Products => _products;
+    public ICategoriaRepository Categorias => _categorias;
+    public IBodegaRepository Bodegas => _bodegas;
+    public ICampoExtraRepository CamposExtras => _camposExtras;
+    public IProductoBodegaRepository ProductoBodegas => _productoBodegas;
+    public IGenericRepository<ProductoCampoExtra> ProductoCamposExtras => _productoCamposExtras;
+    public IFacturaVentaRepository FacturasVenta => _facturasVenta;
+    public IFacturaCompraRepository FacturasCompra => _facturasCompra;
+    public IGenericRepository<FacturaVentaDetalle> FacturasVentaDetalle => _facturasVentaDetalle;
+    public IGenericRepository<FacturaCompraDetalle> FacturasCompraDetalle => _facturasCompraDetalle;
+    public IVendedorRepository Vendedores => _vendedores;
+    public IProveedorRepository Proveedores => _proveedores;
+    public IGenericRepository<MovimientoInventario> MovimientosInventario => _movimientosInventario;
 
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)
     {

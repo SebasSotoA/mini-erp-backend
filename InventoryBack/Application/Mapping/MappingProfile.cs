@@ -63,5 +63,15 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.FechaCreacion, opt => opt.Ignore())
             .ForMember(dest => dest.Activo, opt => opt.Ignore())
             .ForMember(dest => dest.ImagenCategoriaUrl, opt => opt.Ignore());
+
+        // Vendedor mappings
+        CreateMap<CreateVendedorDto, Vendedor>();
+        CreateMap<UpdateVendedorDto, Vendedor>();
+        CreateMap<Vendedor, VendedorDto>();
+
+        // Proveedor mappings
+        CreateMap<CreateProveedorDto, Proveedor>();
+        CreateMap<UpdateProveedorDto, Proveedor>();
+        CreateMap<Proveedor, ProveedorDto>();
     }
 }
