@@ -28,6 +28,9 @@ public class ProductDto
     [JsonPropertyName("categoriaId")]
     public Guid? CategoriaId { get; set; }
     
+    [JsonPropertyName("categoriaNombre")]
+    public string? CategoriaNombre { get; set; }
+    
     [JsonPropertyName("codigoSku")]
     public string? CodigoSku { get; set; }
     

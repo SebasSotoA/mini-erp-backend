@@ -272,6 +272,13 @@ public class ProductService : IProductService
         // Calculate total stock across all warehouses
         productDto.StockActual = await _unitOfWork.Products.GetTotalStockAsync(producto.Id, ct);
 
+        // Load category name if product has a category
+        if (producto.CategoriaId.HasValue)
+        {
+            var categoria = await _unitOfWork.Categorias.GetByIdAsync(producto.CategoriaId.Value, ct);
+            productDto.CategoriaNombre = categoria?.Nombre;
+        }
+
         return productDto;
     }
 
@@ -285,6 +292,13 @@ public class ProductService : IProductService
         
         // Calculate total stock across all warehouses
         productDto.StockActual = await _unitOfWork.Products.GetTotalStockAsync(id, ct);
+
+        // Load category name if product has a category
+        if (producto.CategoriaId.HasValue)
+        {
+            var categoria = await _unitOfWork.Categorias.GetByIdAsync(producto.CategoriaId.Value, ct);
+            productDto.CategoriaNombre = categoria?.Nombre;
+        }
 
         return productDto;
     }
@@ -301,10 +315,33 @@ public class ProductService : IProductService
         var productIds = dtos.Select(d => d.Id).ToList();
         var stockDictionary = await _unitOfWork.Products.GetTotalStockBatchAsync(productIds, ct);
 
-        // Populate StockActual for each product
+        // Get all unique category IDs
+        var categoryIds = items
+            .Where(p => p.CategoriaId.HasValue)
+            .Select(p => p.CategoriaId!.Value)
+            .Distinct()
+            .ToList();
+
+        // Batch query to get all categories at once
+        Dictionary<Guid, string> categoryNames = new();
+        if (categoryIds.Any())
+        {
+            var categories = await _unitOfWork.Categorias.ListAsync(
+                filter: c => categoryIds.Contains(c.Id),
+                ct: ct
+            );
+            categoryNames = categories.ToDictionary(c => c.Id, c => c.Nombre);
+        }
+
+        // Populate StockActual and CategoriaNombre for each product
         foreach (var dto in dtos)
         {
             dto.StockActual = stockDictionary.GetValueOrDefault(dto.Id, 0);
+            
+            if (dto.CategoriaId.HasValue && categoryNames.ContainsKey(dto.CategoriaId.Value))
+            {
+                dto.CategoriaNombre = categoryNames[dto.CategoriaId.Value];
+            }
         }
 
         return new PagedResult<ProductDto>
