@@ -68,10 +68,10 @@ public class CreateFacturaVentaDtoValidator : AbstractValidator<CreateFacturaVen
         return vendedor != null && vendedor.Activo;
     }
 
-    private async Task<bool> TotalMustMatchItemsSum(CreateFacturaVentaDto dto, CancellationToken ct)
+    private Task<bool> TotalMustMatchItemsSum(CreateFacturaVentaDto dto, CancellationToken ct)
     {
         if (dto.Items == null || !dto.Items.Any())
-            return true;
+            return Task.FromResult(true);
 
         // Calcular total esperado
         decimal totalCalculado = 0;
@@ -85,7 +85,7 @@ public class CreateFacturaVentaDtoValidator : AbstractValidator<CreateFacturaVen
         }
 
         // Permitir una diferencia de 0.01 por redondeo
-        return Math.Abs(totalCalculado - dto.Total) < 0.01m;
+        return Task.FromResult(Math.Abs(totalCalculado - dto.Total) < 0.01m);
     }
 }
 
