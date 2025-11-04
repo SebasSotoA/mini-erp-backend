@@ -267,13 +267,26 @@ public class ProductService : IProductService
 
         // ========== 9. RETURN PRODUCT DTO ==========
 
-        return _mapper.Map<ProductDto>(producto);
+        var productDto = _mapper.Map<ProductDto>(producto);
+        
+        // Calculate total stock across all warehouses
+        productDto.StockActual = await _unitOfWork.Products.GetTotalStockAsync(producto.Id, ct);
+
+        return productDto;
     }
 
     public async Task<ProductDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         var producto = await _unitOfWork.Products.GetByIdAsync(id, ct);
-        return producto != null ? _mapper.Map<ProductDto>(producto) : null;
+        if (producto == null)
+            return null;
+
+        var productDto = _mapper.Map<ProductDto>(producto);
+        
+        // Calculate total stock across all warehouses
+        productDto.StockActual = await _unitOfWork.Products.GetTotalStockAsync(id, ct);
+
+        return productDto;
     }
 
     public async Task<PagedResult<ProductDto>> GetPagedAsync(
@@ -282,7 +295,17 @@ public class ProductService : IProductService
     {
         var (items, totalCount) = await _unitOfWork.Products.GetPagedAsync(filters, ct);
 
-        var dtos = _mapper.Map<IEnumerable<ProductDto>>(items);
+        var dtos = _mapper.Map<IEnumerable<ProductDto>>(items).ToList();
+
+        // Batch query to get stock for all products at once (more efficient)
+        var productIds = dtos.Select(d => d.Id).ToList();
+        var stockDictionary = await _unitOfWork.Products.GetTotalStockBatchAsync(productIds, ct);
+
+        // Populate StockActual for each product
+        foreach (var dto in dtos)
+        {
+            dto.StockActual = stockDictionary.GetValueOrDefault(dto.Id, 0);
+        }
 
         return new PagedResult<ProductDto>
         {

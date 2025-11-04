@@ -104,16 +104,10 @@ public class MovimientoInventarioFilterDto
     public string? BodegaNombre { get; set; }
 
     /// <summary>
-    /// Filter by movement type (e.g., "ENTRADA", "SALIDA", "AJUSTE_POSITIVO", "AJUSTE_NEGATIVO")
+    /// Filter by movement type: "VENTA" or "COMPRA"
     /// </summary>
     [JsonPropertyName("tipoMovimiento")]
     public string? TipoMovimiento { get; set; }
-
-    /// <summary>
-    /// Filter by invoice type: "COMPRA", "VENTA", or null for all
-    /// </summary>
-    [JsonPropertyName("tipoFactura")]
-    public string? TipoFactura { get; set; }
 
     /// <summary>
     /// Filter by start date (inclusive)

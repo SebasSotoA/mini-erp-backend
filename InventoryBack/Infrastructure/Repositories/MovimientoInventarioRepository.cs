@@ -180,25 +180,11 @@ public class MovimientoInventarioRepository : EfGenericRepository<MovimientoInve
             query = query.Where(m => m.Bodega != null && m.Bodega.Nombre.ToLower().Contains(searchTerm));
         }
 
-        // Filter by movement type
+        // Filter by movement type (VENTA or COMPRA)
         if (!string.IsNullOrWhiteSpace(filters.TipoMovimiento))
         {
             var tipo = filters.TipoMovimiento.Trim().ToUpper();
             query = query.Where(m => m.TipoMovimiento.ToUpper() == tipo);
-        }
-
-        // Filter by invoice type (COMPRA or VENTA)
-        if (!string.IsNullOrWhiteSpace(filters.TipoFactura))
-        {
-            var tipoUpper = filters.TipoFactura.Trim().ToUpper();
-            if (tipoUpper == "COMPRA")
-            {
-                query = query.Where(m => m.FacturaCompraId != null);
-            }
-            else if (tipoUpper == "VENTA")
-            {
-                query = query.Where(m => m.FacturaVentaId != null);
-            }
         }
 
         // Filter by date range

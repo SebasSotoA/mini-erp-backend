@@ -42,4 +42,10 @@ public class ProductDto
     
     [JsonPropertyName("imagenProductoUrl")]
     public string? ImagenProductoUrl { get; set; }
+    
+    /// <summary>
+    /// Total stock across all warehouses (sum of ProductoBodega.StockActual)
+    /// </summary>
+    [JsonPropertyName("stockActual")]
+    public int StockActual { get; set; }
 }

@@ -150,6 +150,38 @@ public class ProductRepository : EfGenericRepository<Producto>, IProductReposito
             .ToListAsync(ct);
     }
 
+    /// <summary>
+    /// Gets the total stock for a product across all warehouses.
+    /// </summary>
+    /// <param name="productId">Product ID</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Sum of StockActual from all ProductoBodega records</returns>
+    public async Task<int> GetTotalStockAsync(Guid productId, CancellationToken ct = default)
+    {
+        var totalStock = await _db.ProductoBodegas
+            .Where(pb => pb.ProductoId == productId)
+            .SumAsync(pb => pb.StockActual, ct);
+
+        return totalStock;
+    }
+
+    /// <summary>
+    /// Gets total stock for multiple products at once (batch operation).
+    /// </summary>
+    /// <param name="productIds">List of product IDs</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Dictionary mapping ProductId to total stock</returns>
+    public async Task<Dictionary<Guid, int>> GetTotalStockBatchAsync(IEnumerable<Guid> productIds, CancellationToken ct = default)
+    {
+        var stocks = await _db.ProductoBodegas
+            .Where(pb => productIds.Contains(pb.ProductoId))
+            .GroupBy(pb => pb.ProductoId)
+            .Select(g => new { ProductId = g.Key, TotalStock = g.Sum(pb => pb.StockActual) })
+            .ToListAsync(ct);
+
+        return stocks.ToDictionary(x => x.ProductId, x => x.TotalStock);
+    }
+
     // ========== PRIVATE HELPER METHODS ==========
 
     private IQueryable<Producto> ApplyStatusFilter(IQueryable<Producto> query, ProductFilterDto filters)

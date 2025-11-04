@@ -12,7 +12,10 @@ public class MappingProfile : Profile
     public MappingProfile()
     {
         // Producto mappings
-        CreateMap<Producto, ProductDto>();
+        // Note: StockActual will be populated manually in the service layer
+        // because it requires a database query to sum ProductoBodega.StockActual
+        CreateMap<Producto, ProductDto>()
+            .ForMember(dest => dest.StockActual, opt => opt.Ignore()); // Will be set manually
         
         CreateMap<CreateProductDto, Producto>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())

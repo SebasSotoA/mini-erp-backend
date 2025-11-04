@@ -140,8 +140,8 @@ public class FacturaVentaService : IFacturaVentaService
                 ProductoId = itemDto.ProductoId,
                 BodegaId = dto.BodegaId,
                 Fecha = dto.Fecha,
-                TipoMovimiento = "SALIDA",
-                Cantidad = itemDto.Cantidad, // Positivo, el tipo indica si es entrada/salida
+                TipoMovimiento = "VENTA",
+                Cantidad = itemDto.Cantidad,
                 PrecioUnitario = itemDto.PrecioUnitario,
                 Observacion = $"Venta - Factura {numeroFactura}",
                 FacturaVentaId = factura.Id,
@@ -236,8 +236,8 @@ public class FacturaVentaService : IFacturaVentaService
                 ProductoId = detalle.ProductoId,
                 BodegaId = factura.BodegaId,
                 Fecha = DateTime.UtcNow,
-                TipoMovimiento = "AJUSTE_POSITIVO",
-                Cantidad = detalle.Cantidad,
+                TipoMovimiento = "VENTA",
+                Cantidad = -detalle.Cantidad, // Negative quantity to indicate reversal
                 PrecioUnitario = detalle.PrecioUnitario,
                 Observacion = $"Anulación de venta - Factura {factura.NumeroFactura}",
                 FacturaVentaId = factura.Id,

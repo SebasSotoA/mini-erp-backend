@@ -82,4 +82,20 @@ public interface IProductRepository : IGenericRepository<Producto>
     /// <param name="ct">Cancellation token</param>
     /// <returns>List of product-campo extra relationships</returns>
     Task<IEnumerable<Domain.Entities.ProductoCampoExtra>> GetProductExtraFieldsAsync(Guid productId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets the total stock for a product across all warehouses.
+    /// </summary>
+    /// <param name="productId">Product ID</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Sum of StockActual from all ProductoBodega records</returns>
+    Task<int> GetTotalStockAsync(Guid productId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets total stock for multiple products at once (batch operation for performance).
+    /// </summary>
+    /// <param name="productIds">List of product IDs</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Dictionary mapping ProductId to total stock</returns>
+    Task<Dictionary<Guid, int>> GetTotalStockBatchAsync(IEnumerable<Guid> productIds, CancellationToken ct = default);
 }
