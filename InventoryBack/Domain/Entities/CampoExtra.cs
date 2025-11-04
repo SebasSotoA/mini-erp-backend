@@ -3,8 +3,8 @@
     public class CampoExtra
     {
         public Guid Id { get; set; }
-        public string Nombre { get; set; }
-        public string TipoDato { get; set; }
+        public required string Nombre { get; set; }
+        public required string TipoDato { get; set; }
         public bool EsRequerido { get; set; }
         public string? ValorPorDefecto { get; set; }
         public string? Descripcion { get; set; }

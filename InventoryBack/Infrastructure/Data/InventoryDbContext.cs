@@ -290,26 +290,28 @@ namespace InventoryBack.Infrastructure.Data
                       .IsRequired()
                       .HasMaxLength(50);
 
-                entity.HasOne<Producto>()
+                // Configurar relaciones con navigation properties explícitas
+                entity.HasOne(mi => mi.Producto)
                       .WithMany()
                       .HasForeignKey(mi => mi.ProductoId)
                       .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasOne<Bodega>()
+                entity.HasOne(mi => mi.Bodega)
                       .WithMany()
                       .HasForeignKey(mi => mi.BodegaId)
                       .OnDelete(DeleteBehavior.Restrict);
 
-                // Foreign Keys a facturas
-                entity.HasOne<FacturaVenta>()
+                entity.HasOne(mi => mi.FacturaVenta)
                       .WithMany()
                       .HasForeignKey(mi => mi.FacturaVentaId)
-                      .OnDelete(DeleteBehavior.Restrict);
+                      .OnDelete(DeleteBehavior.Restrict)
+                      .IsRequired(false);
 
-                entity.HasOne<FacturaCompra>()
+                entity.HasOne(mi => mi.FacturaCompra)
                       .WithMany()
                       .HasForeignKey(mi => mi.FacturaCompraId)
-                      .OnDelete(DeleteBehavior.Restrict);
+                      .OnDelete(DeleteBehavior.Restrict)
+                      .IsRequired(false);
 
                 // Índices para mejorar rendimiento en consultas frecuentes
                 entity.HasIndex(mi => mi.Fecha)
@@ -317,6 +319,12 @@ namespace InventoryBack.Infrastructure.Data
 
                 entity.HasIndex(mi => mi.TipoMovimiento)
                       .HasDatabaseName("IX_MovimientosInventario_TipoMovimiento");
+
+                entity.HasIndex(mi => mi.ProductoId)
+                      .HasDatabaseName("IX_MovimientosInventario_ProductoId");
+
+                entity.HasIndex(mi => mi.BodegaId)
+                      .HasDatabaseName("IX_MovimientosInventario_BodegaId");
             });
         }
 

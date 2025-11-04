@@ -90,6 +90,56 @@ app.MapScalarApiReference(options =>
     .WithTheme(ScalarTheme.DeepSpace)
     .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.Http));
 
+// ========== HEALTH CHECK / PING ENDPOINTS ==========
+// Azure App Service "Always On" needs a valid endpoint to ping
+
+if (app.Environment.IsDevelopment())
+{
+    // Development: Detailed information for debugging
+    app.MapGet("/", () => Results.Ok(new
+    {
+        service = "Inventory API",
+        environment = "Development",
+        status = "running",
+        version = "1.0.0",
+        timestamp = DateTime.UtcNow,
+        endpoints = new
+        {
+            api = "/api",
+            scalar = "/scalar/v1",
+            openapi = "/openapi/v1.json",
+            health = "/health"
+        }
+    }))
+    .WithName("HealthCheck")
+    .WithTags("Health")
+    .Produces(200)
+    .ExcludeFromDescription(); // Don't show in Swagger/Scalar
+}
+else
+{
+    // Production: Minimal response for security
+    app.MapGet("/", () => Results.Ok(new
+    {
+        status = "ok",
+        timestamp = DateTime.UtcNow
+    }))
+    .WithName("HealthCheck")
+    .WithTags("Health")
+    .Produces(200)
+    .ExcludeFromDescription();
+}
+
+// Simple health check endpoint (same for all environments)
+app.MapGet("/health", () => Results.Ok(new
+{
+    status = "healthy",
+    timestamp = DateTime.UtcNow
+}))
+.WithName("Health")
+.WithTags("Health")
+.Produces(200);
+
 app.UseHttpsRedirection();
 
 app.UseAuthorization();

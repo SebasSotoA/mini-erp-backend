@@ -5,6 +5,6 @@
         public Guid Id { get; set; }
         public Guid ProductoId { get; set; }
         public Guid CampoExtraId { get; set; }
-        public string Valor { get; set; }
+        public required string Valor { get; set; }
     }
 }

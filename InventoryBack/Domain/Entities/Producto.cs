@@ -3,8 +3,8 @@
     public class Producto
     {
         public Guid Id { get; set; }
-        public string Nombre { get; set; }
-        public string UnidadMedida { get; set; }
+        public required string Nombre { get; set; }
+        public required string UnidadMedida { get; set; }
         public decimal PrecioBase { get; set; }
         public decimal? ImpuestoPorcentaje { get; set; }
         public decimal CostoInicial { get; set; }
