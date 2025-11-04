@@ -16,6 +16,31 @@ using InventoryBack.API.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ========== CORS CONFIGURATION ==========
+string[] allowedOrigins;
+
+if (builder.Environment.IsDevelopment())
+{
+    // Development: Allow localhost ports (Vite, React, etc.)
+    allowedOrigins = new[] { "http://localhost:3000" };
+}
+else
+{
+    // Production: Only allow your production frontend domain
+    allowedOrigins = new[] { "https://mini-erp-frontend.vercel.app" };
+}
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("CorsPolicy", policy =>
+    {
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials(); // Enable if you need to send cookies/auth headers
+    });
+});
+
 // Add services to the container.
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -81,6 +106,9 @@ var app = builder.Build();
 
 // 1. Exception Handling (MUST BE FIRST)
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+// 2. CORS (MUST BE BEFORE Authorization and MapControllers)
+app.UseCors("CorsPolicy");
 
 // Configure the HTTP request pipeline.
 // Enable Scalar in both Development and Production (Azure)
