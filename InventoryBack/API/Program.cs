@@ -13,6 +13,11 @@ using InventoryBack.Infrastructure.Services;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using InventoryBack.API.Middleware;
+using InventoryBack.Infrastructure.Interfaces;
+using QuestPDF.Infrastructure;
+
+// Configure QuestPDF license (Community license for non-commercial use)
+QuestPDF.Settings.License = LicenseType.Community;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -84,6 +89,7 @@ builder.Services.AddScoped<IProveedorService, ProveedorService>();
 builder.Services.AddScoped<IMovimientoInventarioService, MovimientoInventarioService>();
 builder.Services.AddScoped<ISkuGeneratorService, SkuGeneratorService>();
 builder.Services.AddScoped<IStorageService, StorageService>();
+builder.Services.AddScoped<IInventarioService, InventarioService>(); // ? NUEVO
 
 // HttpClient for StorageService
 builder.Services.AddHttpClient();
@@ -99,6 +105,9 @@ builder.Services.AddValidatorsFromAssemblyContaining<CreateFacturaVentaDtoValida
 builder.Services.AddValidatorsFromAssemblyContaining<CreateFacturaCompraDtoValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateVendedorDtoValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateProveedorDtoValidator>();
+
+// Infrastructure Services
+builder.Services.AddScoped<IPdfGenerator, PdfGeneratorService>(); // ? NUEVO
 
 var app = builder.Build();
 
