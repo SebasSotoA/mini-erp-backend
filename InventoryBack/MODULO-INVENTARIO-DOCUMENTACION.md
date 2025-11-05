@@ -54,8 +54,8 @@ Se ha creado exitosamente el módulo de **Inventario** con endpoints REST para ob
 
 | Parámetro | Tipo | Descripción | Ejemplo |
 |-----------|------|-------------|---------|
-| `bodegaId` | Guid | Filtrar por bodega específica | `?bodegaId=a1b2c3d4...` |
-| `categoriaId` | Guid | Filtrar por categoría | `?categoriaId=e5f6g7h8...` |
+| `bodegaIds` | Guid[] | Filtrar por una o más bodegas | `?bodegaIds=guid1&bodegaIds=guid2` |
+| `categoriaIds` | Guid[] | Filtrar por una o más categorías | `?categoriaIds=guid1&categoriaIds=guid2` |
 | `estado` | String | `"activo"`, `"inactivo"`, `"todos"` | `?estado=activo` |
 | `q` | String | Búsqueda por nombre o SKU | `?q=laptop` |
 
@@ -88,6 +88,8 @@ Se ha creado exitosamente el módulo de **Inventario** con endpoints REST para ob
       }
     ],
     "filtrosAplicados": {
+      "Bodegas": "Principal, Sucursal Norte",
+      "Categorías": "Electrónica, Accesorios",
       "Estado": "activo"
     },
     "fechaGeneracion": "2024-11-05T20:30:00Z"
@@ -102,17 +104,20 @@ Se ha creado exitosamente el módulo de **Inventario** con endpoints REST para ob
 # Todos los productos activos
 GET /api/inventario/resumen
 
-# Solo productos de Bodega Principal
-GET /api/inventario/resumen?bodegaId=a1b2c3d4-...
+# ? NUEVO: Múltiples bodegas (Bodega 1 Y Bodega 2)
+GET /api/inventario/resumen?bodegaIds=guid1&bodegaIds=guid2
 
-# Productos de categoría Electrónica
-GET /api/inventario/resumen?categoriaId=e5f6g7h8-...
+# ? NUEVO: Múltiples categorías (Electrónica Y Accesorios)
+GET /api/inventario/resumen?categoriaIds=guid1&categoriaIds=guid2
+
+# ? NUEVO: Combinación de múltiples bodegas y categorías
+GET /api/inventario/resumen?bodegaIds=guid1&bodegaIds=guid2&categoriaIds=guid3&estado=activo
 
 # Búsqueda por nombre o SKU
 GET /api/inventario/resumen?q=laptop
 
-# Combinación de filtros
-GET /api/inventario/resumen?bodegaId=...&estado=activo&q=mouse
+# ? NUEVO: Filtros complejos - 2 bodegas, 1 categoría, solo activos
+GET /api/inventario/resumen?bodegaIds=guid1&bodegaIds=guid2&categoriaIds=guid3&estado=activo&q=laptop
 ```
 
 ---
@@ -193,11 +198,13 @@ valorProducto = cantidadActual * costoInicial
 
 ### **Filtros Aplicados**
 
-1. **Por Bodega (`bodegaId`):**
-   - Filtra `ProductoBodegas` por `BodegaId`
+1. **Por Múltiples Bodegas (`bodegaIds`):**
+   - Filtra `ProductoBodegas` donde `BodegaId` está en la lista de IDs
+   - Ejemplo: `?bodegaIds=guid1&bodegaIds=guid2` ? Productos en Bodega 1 **O** Bodega 2
 
-2. **Por Categoría (`categoriaId`):**
-   - Filtra `Productos` por `CategoriaId`
+2. **Por Múltiples Categorías (`categoriaIds`):**
+   - Filtra `Productos` donde `CategoriaId` está en la lista de IDs
+   - Ejemplo: `?categoriaIds=guid1&categoriaIds=guid2` ? Productos de Categoría 1 **O** Categoría 2
 
 3. **Por Estado (`estado`):**
    - `"activo"` ? Solo productos con `Activo = true`
@@ -208,6 +215,11 @@ valorProducto = cantidadActual * costoInicial
    - Búsqueda parcial (case-insensitive) en:
      - `Producto.Nombre`
      - `Producto.CodigoSku`
+
+**Nota sobre la Lógica de Filtrado:**
+- **Bodegas**: Usa lógica **OR** (productos en bodega 1 O bodega 2)
+- **Categorías**: Usa lógica **OR** (productos de categoría A O categoría B)
+- **Entre filtros diferentes**: Usa lógica **AND** (bodega 1 O 2) **Y** (categoría A O B) **Y** (estado activo)
 
 ---
 
@@ -251,17 +263,38 @@ curl -X GET "https://localhost:7262/api/inventario/resumen"
 - Todos los productos activos listados
 - `valorTotal` y `stockTotal` calculados correctamente
 
-### **Test 2: Filtro por Bodega**
+### **Test 2: Filtro por UNA Bodega**
 
 ```bash
-curl -X GET "https://localhost:7262/api/inventario/resumen?bodegaId={guid}"
+curl -X GET "https://localhost:7262/api/inventario/resumen?bodegaIds={guid}"
 ```
 
 **Resultado Esperado:**
 - Solo productos de esa bodega
 - Totales recalculados
 
-### **Test 3: Búsqueda por SKU**
+### **Test 3: ? NUEVO - Filtro por MÚLTIPLES Bodegas**
+
+```bash
+curl -X GET "https://localhost:7262/api/inventario/resumen?bodegaIds=guid1&bodegaIds=guid2&bodegaIds=guid3"
+```
+
+**Resultado Esperado:**
+- Productos de bodega 1 **O** bodega 2 **O** bodega 3
+- `filtrosAplicados.Bodegas` = "Principal, Sucursal Norte, Sucursal Sur"
+- Totales de todas las bodegas seleccionadas
+
+### **Test 4: ? NUEVO - Filtro por MÚLTIPLES Categorías**
+
+```bash
+curl -X GET "https://localhost:7262/api/inventario/resumen?categoriaIds=guid1&categoriaIds=guid2"
+```
+
+**Resultado Esperado:**
+- Productos de categoría 1 **O** categoría 2
+- `filtrosAplicados.Categorías` = "Electrónica, Accesorios"
+
+### **Test 5: Búsqueda por SKU**
 
 ```bash
 curl -X GET "https://localhost:7262/api/inventario/resumen?q=LAP"
@@ -270,7 +303,7 @@ curl -X GET "https://localhost:7262/api/inventario/resumen?q=LAP"
 **Resultado Esperado:**
 - Solo productos con SKU o nombre que contenga "LAP"
 
-### **Test 4: Exportar PDF**
+### **Test 6: Exportar PDF**
 
 ```bash
 curl -X GET "https://localhost:7262/api/inventario/resumen/pdf" --output reporte.pdf
@@ -280,15 +313,32 @@ curl -X GET "https://localhost:7262/api/inventario/resumen/pdf" --output reporte
 - Archivo PDF descargado
 - Contiene tabla de productos y totales
 
-### **Test 5: Filtros Combinados**
+### **Test 7: ? NUEVO - Filtros Combinados Avanzados**
 
 ```bash
-curl -X GET "https://localhost:7262/api/inventario/resumen?bodegaId={guid}&estado=activo&q=laptop"
+# Productos de Bodega 1 O 2, Categoría Electrónica O Accesorios, solo activos
+curl -X GET "https://localhost:7262/api/inventario/resumen?bodegaIds=guid1&bodegaIds=guid2&categoriaIds=guid3&categoriaIds=guid4&estado=activo"
 ```
 
 **Resultado Esperado:**
-- Todos los filtros aplicados correctamente
-- `filtrosAplicados` en respuesta muestra los 3 filtros
+- Productos que cumplan TODAS las condiciones:
+  - Están en bodega 1 **O** bodega 2 **Y**
+  - Son de categoría 3 **O** categoría 4 **Y**
+  - Están activos
+- `filtrosAplicados` muestra todos los filtros aplicados
+
+### **Test 8: ? NUEVO - PDF con Múltiples Filtros**
+
+```bash
+curl -X GET "https://localhost:7262/api/inventario/resumen/pdf?bodegaIds=guid1&bodegaIds=guid2&categoriaIds=guid3&estado=activo" --output reporte_filtrado.pdf
+```
+
+**Resultado Esperado:**
+- PDF con encabezado mostrando:
+  - "Bodegas: Principal, Sucursal Norte"
+  - "Categorías: Electrónica"
+  - "Estado: activo"
+- Tabla con productos filtrados
 
 ---
 
@@ -366,13 +416,165 @@ curl -X GET "https://localhost:7262/api/inventario/resumen?bodegaId={guid}&estad
 
 ---
 
+## ?? Casos de Uso Prácticos con Múltiples Filtros
+
+### **Caso 1: Reporte Consolidado de Dos Sucursales**
+
+**Escenario:** Necesitas el inventario total de "Bodega Principal" y "Bodega Norte".
+
+```bash
+GET /api/inventario/resumen?bodegaIds=guid-principal&bodegaIds=guid-norte
+```
+
+**Response:**
+```json
+{
+  "valorTotal": 450000.00,
+  "stockTotal": 250,
+  "filtrosAplicados": {
+    "Bodegas": "Principal, Norte"
+  },
+  "productos": [
+    { "nombre": "Laptop Dell", "bodega": "Principal", ... },
+    { "nombre": "Mouse Logitech", "bodega": "Norte", ... }
+  ]
+}
+```
+
+---
+
+### **Caso 2: Inventario de Electrónica y Computadoras en Todas las Bodegas**
+
+**Escenario:** Ver todos los productos de "Electrónica" y "Computadoras" sin importar la bodega.
+
+```bash
+GET /api/inventario/resumen?categoriaIds=guid-electronica&categoriaIds=guid-computadoras
+```
+
+**Response:**
+```json
+{
+  "filtrosAplicados": {
+    "Categorías": "Electrónica, Computadoras"
+  },
+  "productos": [
+    { "nombre": "Laptop Dell", "categoria": "Computadoras", ... },
+    { "nombre": "TV Samsung", "categoria": "Electrónica", ... }
+  ]
+}
+```
+
+---
+
+### **Caso 3: Productos Activos de Categorías Específicas en Bodegas Específicas**
+
+**Escenario:** Auditoría de productos activos de "Electrónica" y "Accesorios" en "Principal" y "Norte".
+
+```bash
+GET /api/inventario/resumen?bodegaIds=guid1&bodegaIds=guid2&categoriaIds=guid3&categoriaIds=guid4&estado=activo
+```
+
+**Lógica Aplicada:**
+```
+(bodega = Principal OR bodega = Norte) 
+AND 
+(categoria = Electrónica OR categoria = Accesorios)
+AND
+(estado = activo)
+```
+
+---
+
+### **Caso 4: Búsqueda de "Laptop" en Bodegas Específicas**
+
+**Escenario:** Buscar todas las laptops solo en "Principal" y "Sur".
+
+```bash
+GET /api/inventario/resumen?bodegaIds=guid-principal&bodegaIds=guid-sur&q=laptop
+```
+
+---
+
+### **Caso 5: Reporte PDF de Productos Inactivos**
+
+**Escenario:** Generar PDF con productos marcados como inactivos en todas las bodegas.
+
+```bash
+GET /api/inventario/resumen/pdf?estado=inactivo
+```
+
+**PDF generado:**
+- Filtros aplicados: "Estado: inactivo"
+- Lista de todos los productos inactivos
+- Útil para planificar limpieza de inventario
+
+---
+
+### **Caso 6: Inventario Completo (Sin Filtros)**
+
+**Escenario:** Ver absolutamente todo el inventario (activos e inactivos).
+
+```bash
+GET /api/inventario/resumen?estado=todos
+```
+
+---
+
+## ?? Tabla Comparativa: Antes vs Después
+
+| Funcionalidad | Antes | ? Después |
+|---------------|-------|----------|
+| Filtrar por 1 bodega | ? | ? |
+| Filtrar por **múltiples** bodegas | ? | ? |
+| Filtrar por 1 categoría | ? | ? |
+| Filtrar por **múltiples** categorías | ? | ? |
+| Combinar bodegas + categorías | ? | ? |
+| Búsqueda por texto | ? | ? |
+| Filtro por estado | ? | ? |
+| Exportar a PDF con filtros | ? | ? |
+
+---
+
+## ?? Formato de Query Strings
+
+### **ASP.NET Core maneja automáticamente arrays en query strings:**
+
+**Múltiples valores con el mismo nombre:**
+```
+?bodegaIds=guid1&bodegaIds=guid2&bodegaIds=guid3
+```
+
+**Se convierte en:**
+```csharp
+filters.BodegaIds = new List<Guid> { guid1, guid2, guid3 }
+```
+
+**Desde JavaScript/TypeScript:**
+```typescript
+// Opción 1: URLSearchParams
+const params = new URLSearchParams();
+params.append('bodegaIds', 'guid1');
+params.append('bodegaIds', 'guid2');
+params.append('estado', 'activo');
+
+fetch(`/api/inventario/resumen?${params}`);
+
+// Opción 2: Construcción manual
+const bodegaIds = ['guid1', 'guid2'];
+const queryString = bodegaIds.map(id => `bodegaIds=${id}`).join('&');
+fetch(`/api/inventario/resumen?${queryString}&estado=activo`);
+```
+
+---
+
 ## ?? Soporte
 
 Si encuentras algún error:
 - Revisa que todos los servicios estén registrados en `Program.cs`
 - Verifica que QuestPDF esté instalado correctamente
 - Asegúrate de que el connection string de PostgreSQL sea válido
+- Para filtros múltiples, verifica que los GUIDs sean válidos
 
 ---
 
-**¡Módulo de Inventario implementado exitosamente!** ??
+**¡Módulo de Inventario con Filtros Múltiples implementado exitosamente!** ??

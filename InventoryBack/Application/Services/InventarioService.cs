@@ -28,10 +28,10 @@ public class InventarioService : IInventarioService
         // Apply filters
         var filteredData = productoBodegasQuery.AsQueryable();
 
-        // Filter by warehouse
-        if (filters.BodegaId.HasValue)
+        // Filter by multiple warehouses (if provided)
+        if (filters.BodegaIds != null && filters.BodegaIds.Any())
         {
-            filteredData = filteredData.Where(pb => pb.BodegaId == filters.BodegaId.Value);
+            filteredData = filteredData.Where(pb => filters.BodegaIds.Contains(pb.BodegaId));
         }
 
         // Get products with their bodegas
@@ -50,10 +50,14 @@ public class InventarioService : IInventarioService
             if (estadoLower == "inactivo" && producto.Activo) continue;
             // "todos" includes all
 
-            // Filter by category
-            if (filters.CategoriaId.HasValue && producto.CategoriaId != filters.CategoriaId.Value)
+            // Filter by multiple categories (if provided)
+            if (filters.CategoriaIds != null && filters.CategoriaIds.Any())
             {
-                continue;
+                // Skip if product has no category OR category not in the filter list
+                if (!producto.CategoriaId.HasValue || !filters.CategoriaIds.Contains(producto.CategoriaId.Value))
+                {
+                    continue;
+                }
             }
 
             // Filter by search query (name or SKU)
@@ -116,21 +120,39 @@ public class InventarioService : IInventarioService
         // Add applied filters for PDF header
         var filtrosAplicados = new Dictionary<string, string>();
         
-        if (filters.BodegaId.HasValue)
+        // Multiple warehouses
+        if (filters.BodegaIds != null && filters.BodegaIds.Any())
         {
-            var bodega = await _unitOfWork.Bodegas.GetByIdAsync(filters.BodegaId.Value, ct);
-            if (bodega != null)
+            var bodegaNames = new List<string>();
+            foreach (var bodegaId in filters.BodegaIds)
             {
-                filtrosAplicados["Bodega"] = bodega.Nombre;
+                var bodega = await _unitOfWork.Bodegas.GetByIdAsync(bodegaId, ct);
+                if (bodega != null)
+                {
+                    bodegaNames.Add(bodega.Nombre);
+                }
+            }
+            if (bodegaNames.Any())
+            {
+                filtrosAplicados["Bodegas"] = string.Join(", ", bodegaNames);
             }
         }
         
-        if (filters.CategoriaId.HasValue)
+        // Multiple categories
+        if (filters.CategoriaIds != null && filters.CategoriaIds.Any())
         {
-            var categoria = await _unitOfWork.Categorias.GetByIdAsync(filters.CategoriaId.Value, ct);
-            if (categoria != null)
+            var categoriaNames = new List<string>();
+            foreach (var categoriaId in filters.CategoriaIds)
             {
-                filtrosAplicados["Categoría"] = categoria.Nombre;
+                var categoria = await _unitOfWork.Categorias.GetByIdAsync(categoriaId, ct);
+                if (categoria != null)
+                {
+                    categoriaNames.Add(categoria.Nombre);
+                }
+            }
+            if (categoriaNames.Any())
+            {
+                filtrosAplicados["Categorías"] = string.Join(", ", categoriaNames);
             }
         }
         
