@@ -36,4 +36,10 @@ public class UpdateProductDto
     
     [JsonPropertyName("imagenProductoUrl")]
     public string? ImagenProductoUrl { get; set; }
+    
+    /// <summary>
+    /// ID of the main warehouse (optional - can be changed)
+    /// </summary>
+    [JsonPropertyName("bodegaPrincipalId")]
+    public Guid? BodegaPrincipalId { get; set; }
 }

@@ -18,6 +18,82 @@
 | `PATCH` | `/api/productos/{id}/deactivate` | Desactivar producto | - |
 | `DELETE` | `/api/productos/{id}/permanent` | Eliminar permanentemente | - |
 
+### ?? CreateProductDto (Request Body para POST)
+
+```json
+{
+  "nombre": "string (requerido)",
+  "unidadMedida": "string (requerido)",
+  "bodegaPrincipalId": "guid (requerido)",
+  "cantidadInicial": 100,
+  "cantidadMinima": 10,
+  "cantidadMaxima": 500,
+  "precioBase": 0.00,
+  "costoInicial": 0.00,
+  "impuestoPorcentaje": 0.00,
+  "categoriaId": "guid (opcional)",
+  "codigoSku": "string (opcional, se genera automáticamente)",
+  "descripcion": "string (opcional)",
+  "imagenProductoUrl": "string (opcional)",
+  "bodegasAdicionales": [
+    {
+      "bodegaId": "guid",
+      "cantidadInicial": 50,
+      "cantidadMinima": 5,
+      "cantidadMaxima": 100
+    }
+  ],
+  "camposExtra": [
+    {
+      "campoExtraId": "guid",
+      "valor": "string"
+    }
+  ]
+}
+```
+
+**Campos para Bodega Principal:**
+- `bodegaPrincipalId` (**requerido**): ID de la bodega principal
+- `cantidadInicial` (**requerido**): Cantidad inicial en bodega principal
+- `cantidadMinima` (**opcional**): Cantidad mínima en bodega principal
+- `cantidadMaxima` (**opcional**): Cantidad máxima en bodega principal
+
+**Campos para Bodegas Adicionales:**
+- `bodegasAdicionales[]` (**opcional**): Array de bodegas adicionales
+  - `bodegaId` (**requerido**): ID de la bodega adicional
+  - `cantidadInicial` (**requerido**): Cantidad inicial
+  - `cantidadMinima` (**opcional**): Cantidad mínima
+  - `cantidadMaxima` (**opcional**): Cantidad máxima
+
+### ?? Estructura de ProductDto (Response)
+
+```json
+{
+  "id": "guid",
+  "nombre": "string",
+  "unidadMedida": "string",
+  "precioBase": 0.00,
+  "impuestoPorcentaje": 0.00,
+  "costoInicial": 0.00,
+  "categoriaId": "guid (opcional)",
+  "categoriaNombre": "string (calculado)",
+  "codigoSku": "string",
+  "descripcion": "string",
+  "activo": true,
+  "fechaCreacion": "2024-01-01T00:00:00Z",
+  "imagenProductoUrl": "string",
+  "stockActual": 100,
+  "bodegaPrincipalId": "guid"
+}
+```
+
+**Campos Calculados:**
+- `stockActual`: Suma total del stock en todas las bodegas
+- `categoriaNombre`: Nombre de la categoría (si tiene categoría asignada)
+
+**Nuevo Campo:**
+- ? `bodegaPrincipalId`: ID de la bodega principal del producto
+
 ### Gestión de Bodegas del Producto
 
 | Método | Endpoint | Descripción | Body |
@@ -26,6 +102,23 @@
 | `POST` | `/api/productos/{productId}/bodegas` | Agregar producto a bodega | AddProductoBodegaDto |
 | `PUT` | `/api/productos/{productId}/bodegas/{bodegaId}` | Actualizar cantidades | UpdateProductoBodegaDto |
 | `DELETE` | `/api/productos/{productId}/bodegas/{bodegaId}` | Remover de bodega | - |
+
+### ?? Estructura de ProductoBodegaDetailDto (Response)
+
+```json
+{
+  "bodegaId": "guid",
+  "bodegaNombre": "string",
+  "bodegaDireccion": "string",
+  "cantidadInicial": 100,
+  "cantidadMinima": 10,
+  "cantidadMaxima": 500,
+  "esPrincipal": true
+}
+```
+
+**Nuevo Campo:**
+- ? `esPrincipal`: Indica si esta bodega es la principal del producto
 
 ### Gestión de Campos Extra del Producto
 

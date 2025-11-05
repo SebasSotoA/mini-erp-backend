@@ -45,6 +45,18 @@ public class CreateProductDto
     [JsonPropertyName("cantidadInicial")]
     public int CantidadInicial { get; set; }
     
+    /// <summary>
+    /// Minimum quantity threshold for main warehouse (optional)
+    /// </summary>
+    [JsonPropertyName("cantidadMinima")]
+    public int? CantidadMinima { get; set; }
+    
+    /// <summary>
+    /// Maximum quantity threshold for main warehouse (optional)
+    /// </summary>
+    [JsonPropertyName("cantidadMaxima")]
+    public int? CantidadMaxima { get; set; }
+    
     // ========== OPTIONAL FIELDS (Advanced Flow) ==========
     
     /// <summary>

@@ -51,4 +51,10 @@ public class ProductDto
     /// </summary>
     [JsonPropertyName("stockActual")]
     public int StockActual { get; set; }
+    
+    /// <summary>
+    /// ID of the main warehouse where this product is primarily stored
+    /// </summary>
+    [JsonPropertyName("bodegaPrincipalId")]
+    public Guid BodegaPrincipalId { get; set; }
 }

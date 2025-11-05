@@ -12,19 +12,21 @@ public class MappingProfile : Profile
     public MappingProfile()
     {
         // Producto mappings
-        // Note: StockActual will be populated manually in the service layer
-        // because it requires a database query to sum ProductoBodega.StockActual
+        // Note: StockActual and CategoriaNombre will be populated manually in the service layer
         CreateMap<Producto, ProductDto>()
-            .ForMember(dest => dest.StockActual, opt => opt.Ignore()); // Will be set manually
+            .ForMember(dest => dest.StockActual, opt => opt.Ignore())  // Set manually after DB query
+            .ForMember(dest => dest.CategoriaNombre, opt => opt.Ignore());  // Set manually after DB query
         
         CreateMap<CreateProductDto, Producto>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.FechaCreacion, opt => opt.Ignore())
-            .ForMember(dest => dest.Activo, opt => opt.MapFrom(src => true));
+            .ForMember(dest => dest.Activo, opt => opt.MapFrom(src => true))
+            .ForMember(dest => dest.BodegaPrincipalId, opt => opt.MapFrom(src => src.BodegaPrincipalId));
 
         CreateMap<UpdateProductDto, Producto>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
-            .ForMember(dest => dest.FechaCreacion, opt => opt.Ignore());
+            .ForMember(dest => dest.FechaCreacion, opt => opt.Ignore())
+            .ForMember(dest => dest.BodegaPrincipalId, opt => opt.Condition(src => src.BodegaPrincipalId.HasValue));
 
         // CampoExtra mappings
         CreateMap<CampoExtra, CampoExtraDto>();

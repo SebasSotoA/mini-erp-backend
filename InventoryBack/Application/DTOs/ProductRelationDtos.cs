@@ -57,6 +57,12 @@ public class ProductoBodegaDetailDto
     
     [JsonPropertyName("cantidadMaxima")]
     public int? CantidadMaxima { get; set; }
+    
+    /// <summary>
+    /// Indicates if this is the main warehouse for the product
+    /// </summary>
+    [JsonPropertyName("esPrincipal")]
+    public bool EsPrincipal { get; set; }
 }
 
 /// <summary>

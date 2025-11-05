@@ -97,7 +97,8 @@ public class ProductService : IProductService
             Descripcion = dto.Descripcion?.Trim(),
             ImagenProductoUrl = dto.ImagenProductoUrl?.Trim(),
             Activo = true,
-            FechaCreacion = DateTime.UtcNow
+            FechaCreacion = DateTime.UtcNow,
+            BodegaPrincipalId = dto.BodegaPrincipalId  // Store main warehouse ID
         };
 
         await _unitOfWork.Products.AddAsync(producto, ct);
@@ -110,8 +111,8 @@ public class ProductService : IProductService
             ProductoId = producto.Id,
             BodegaId = dto.BodegaPrincipalId,
             StockActual = dto.CantidadInicial, // Mapeo: DTO.CantidadInicial ? Entity.StockActual
-            CantidadMinima = null,
-            CantidadMaxima = null
+            CantidadMinima = dto.CantidadMinima,  // Opcional
+            CantidadMaxima = dto.CantidadMaxima   // Opcional
         };
 
         await _unitOfWork.ProductoBodegas.AddAsync(mainProductoBodega, ct);
@@ -381,6 +382,31 @@ public class ProductService : IProductService
             }
         }
 
+        // Validate main warehouse if being changed
+        if (dto.BodegaPrincipalId.HasValue && dto.BodegaPrincipalId.Value != producto.BodegaPrincipalId)
+        {
+            // Check if product exists in the new main warehouse
+            var productoBodega = await _unitOfWork.ProductoBodegas.GetByProductAndBodegaAsync(id, dto.BodegaPrincipalId.Value, ct);
+            if (productoBodega == null)
+            {
+                throw new BusinessRuleException(
+                    "El producto debe estar asignado a la bodega antes de establecerla como bodega principal. " +
+                    "Primero agregue el producto a la bodega usando POST /api/productos/{id}/bodegas");
+            }
+
+            // Validate warehouse exists and is active
+            var bodega = await _unitOfWork.Bodegas.GetByIdAsync(dto.BodegaPrincipalId.Value, ct);
+            if (bodega == null)
+            {
+                throw new NotFoundException("Bodega", dto.BodegaPrincipalId.Value);
+            }
+
+            if (!bodega.Activo)
+            {
+                throw new BusinessRuleException($"La bodega '{bodega.Nombre}' está inactiva.");
+            }
+        }
+
         // Map changes (preserving Id and FechaCreacion)
         _mapper.Map(dto, producto);
 
@@ -608,7 +634,8 @@ public class ProductService : IProductService
                     BodegaDireccion = bodega.Direccion,
                     CantidadInicial = pb.StockActual, // Mapeo inverso: Entity.StockActual ? DTO.CantidadInicial
                     CantidadMinima = pb.CantidadMinima,
-                    CantidadMaxima = pb.CantidadMaxima
+                    CantidadMaxima = pb.CantidadMaxima,
+                    EsPrincipal = pb.BodegaId == product.BodegaPrincipalId  // Mark if this is the main warehouse
                 });
             }
         }

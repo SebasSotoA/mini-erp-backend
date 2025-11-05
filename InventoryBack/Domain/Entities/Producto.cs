@@ -14,5 +14,10 @@
         public bool Activo { get; set; }
         public DateTime FechaCreacion { get; set; }
         public string? ImagenProductoUrl { get; set; }
+        
+        /// <summary>
+        /// ID of the main warehouse where this product is primarily stored
+        /// </summary>
+        public Guid BodegaPrincipalId { get; set; }
     }
 }
