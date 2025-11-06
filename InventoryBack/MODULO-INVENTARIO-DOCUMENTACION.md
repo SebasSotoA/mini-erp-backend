@@ -48,16 +48,18 @@ Se ha creado exitosamente el módulo de **Inventario** con endpoints REST para ob
 
 ### **1?? GET `/api/inventario/resumen`**
 
-**Descripción:** Obtiene un resumen del inventario con totales y detalles por producto.
+**Descripción:** Obtiene un resumen del inventario con totales y detalles por producto (paginado).
 
 **Parámetros de Query (Todos Opcionales):**
 
-| Parámetro | Tipo | Descripción | Ejemplo |
-|-----------|------|-------------|---------|
-| `bodegaIds` | Guid[] | Filtrar por una o más bodegas | `?bodegaIds=guid1&bodegaIds=guid2` |
-| `categoriaIds` | Guid[] | Filtrar por una o más categorías | `?categoriaIds=guid1&categoriaIds=guid2` |
-| `estado` | String | `"activo"`, `"inactivo"`, `"todos"` | `?estado=activo` |
-| `q` | String | Búsqueda por nombre o SKU | `?q=laptop` |
+| Parámetro | Tipo | Descripción | Ejemplo | Default |
+|-----------|------|-------------|---------|---------|
+| `bodegaIds` | Guid[] | Filtrar por una o más bodegas | `?bodegaIds=guid1&bodegaIds=guid2` | - |
+| `categoriaIds` | Guid[] | Filtrar por una o más categorías | `?categoriaIds=guid1&categoriaIds=guid2` | - |
+| `estado` | String | `"activo"`, `"inactivo"`, `"todos"` | `?estado=activo` | `"activo"` |
+| `q` | String | Búsqueda por nombre o SKU | `?q=laptop` | - |
+| `page` | Int | Número de página | `?page=2` | `1` |
+| `pageSize` | Int | Tamaño de página (max: 1000) | `?pageSize=100` | `50` |
 
 **Respuesta de Ejemplo:**
 
@@ -67,6 +69,10 @@ Se ha creado exitosamente el módulo de **Inventario** con endpoints REST para ob
   "data": {
     "valorTotal": 244189.00,
     "stockTotal": 1610,
+    "page": 1,
+    "pageSize": 50,
+    "totalCount": 150,
+    "totalPages": 3,
     "productos": [
       {
         "nombre": "Laptop Asus Vivobook 15",
@@ -86,6 +92,7 @@ Se ha creado exitosamente el módulo de **Inventario** con endpoints REST para ob
         "valorTotal": 775.00,
         "categoria": "Accesorios"
       }
+      // ...48 productos más en la página 1
     ],
     "filtrosAplicados": {
       "Bodegas": "Principal, Sucursal Norte",
@@ -101,23 +108,37 @@ Se ha creado exitosamente el módulo de **Inventario** con endpoints REST para ob
 **Ejemplos de Uso:**
 
 ```bash
-# Todos los productos activos
+# Primera página (50 productos por defecto)
 GET /api/inventario/resumen
 
-# ? NUEVO: Múltiples bodegas (Bodega 1 Y Bodega 2)
-GET /api/inventario/resumen?bodegaIds=guid1&bodegaIds=guid2
+# Segunda página
+GET /api/inventario/resumen?page=2
 
-# ? NUEVO: Múltiples categorías (Electrónica Y Accesorios)
-GET /api/inventario/resumen?categoriaIds=guid1&categoriaIds=guid2
+# Personalizar tamaño de página (100 productos)
+GET /api/inventario/resumen?pageSize=100
 
-# ? NUEVO: Combinación de múltiples bodegas y categorías
-GET /api/inventario/resumen?bodegaIds=guid1&bodegaIds=guid2&categoriaIds=guid3&estado=activo
+# ? NUEVO: Paginación + Múltiples bodegas
+GET /api/inventario/resumen?bodegaIds=guid1&bodegaIds=guid2&page=2&pageSize=20
 
-# Búsqueda por nombre o SKU
-GET /api/inventario/resumen?q=laptop
+# ? NUEVO: Paginación + Múltiples categorías
+GET /api/inventario/resumen?categoriaIds=guid1&categoriaIds=guid2&page=1&pageSize=100
 
-# ? NUEVO: Filtros complejos - 2 bodegas, 1 categoría, solo activos
-GET /api/inventario/resumen?bodegaIds=guid1&bodegaIds=guid2&categoriaIds=guid3&estado=activo&q=laptop
+# ? NUEVO: Paginación + Filtros complejos
+GET /api/inventario/resumen?bodegaIds=guid1&bodegaIds=guid2&categoriaIds=guid3&estado=activo&page=3&pageSize=25
+
+# Búsqueda paginada
+GET /api/inventario/resumen?q=laptop&page=1&pageSize=20
+```
+
+**Información de Paginación en la Respuesta:**
+
+```json
+{
+  "page": 2,           // Página actual
+  "pageSize": 50,      // Productos por página
+  "totalCount": 150,   // Total de productos encontrados
+  "totalPages": 3      // Total de páginas disponibles
+}
 ```
 
 ---
@@ -130,7 +151,7 @@ GET /api/inventario/resumen?bodegaIds=guid1&bodegaIds=guid2&categoriaIds=guid3&e
 
 **Respuesta:**
 - **Content-Type:** `application/pdf`
-- **Descarga automática:** `inventario_resumen_yyyyMMdd_HHmmss.pdf`
+- **Descarga automática:** `inventario_resumen_yyyyMMdd_HHmms.pdf`
 
 **Contenido del PDF:**
 - ? Encabezado con título y fecha de generación
@@ -186,14 +207,33 @@ QuestPDF.Settings.License = LicenseType.Community;
 ### **Cálculos Implementados**
 
 ```csharp
-// Valor Total del Inventario
+// Valor Total del Inventario (SIN paginar - total de todos los productos filtrados)
 valorTotal = SUM(cantidadActual * costoInicial)
 
-// Stock Total
+// Stock Total (SIN paginar - total de todos los productos filtrados)
 stockTotal = SUM(cantidadActual)
 
 // Valor por Producto
 valorProducto = cantidadActual * costoInicial
+```
+
+**?? Importante sobre Paginación:**
+- Los campos `valorTotal` y `stockTotal` representan el **total de TODOS** los productos filtrados, **NO solo de la página actual**.
+- Los `productos[]` son **solo los de la página solicitada** (según `page` y `pageSize`).
+- `totalCount` indica cuántos productos hay en total (antes de paginar).
+- `totalPages` = `Math.Ceiling(totalCount / pageSize)`
+
+**Ejemplo:**
+```json
+{
+  "valorTotal": 1500000.00,    // Suma de TODOS los 150 productos
+  "stockTotal": 5000,           // Suma de TODOS los 150 productos
+  "page": 2,                    // Página actual
+  "pageSize": 50,               // Productos por página
+  "totalCount": 150,            // Total de productos filtrados
+  "totalPages": 3,              // 150 / 50 = 3 páginas
+  "productos": [ /* Solo 50 productos de la página 2 */ ]
+}
 ```
 
 ### **Filtros Aplicados**
@@ -220,6 +260,23 @@ valorProducto = cantidadActual * costoInicial
 - **Bodegas**: Usa lógica **OR** (productos en bodega 1 O bodega 2)
 - **Categorías**: Usa lógica **OR** (productos de categoría A O categoría B)
 - **Entre filtros diferentes**: Usa lógica **AND** (bodega 1 O 2) **Y** (categoría A O B) **Y** (estado activo)
+
+---
+
+## ? Checklist de Implementación
+
+- [x] DTOs creados (`InventarioFilterDto`, `InventarioProductoDto`, `InventarioResumenDto`)
+- [x] Interfaz `IInventarioService` definida
+- [x] Servicio `InventarioService` implementado
+- [x] Interfaz `IPdfGenerator` definida
+- [x] Servicio `PdfGeneratorService` implementado con QuestPDF
+- [x] Controlador `InventarioController` con 2 endpoints
+- [x] Paquete QuestPDF instalado
+- [x] Servicios registrados en DI
+- [x] Licencia QuestPDF configurada
+- [x] **Filtros múltiples** (bodegaIds[], categoriaIds[]) implementados
+- [x] **Paginación** (page, pageSize, totalCount, totalPages) implementada
+- [x] Compilación exitosa
 
 ---
 
@@ -340,6 +397,43 @@ curl -X GET "https://localhost:7262/api/inventario/resumen/pdf?bodegaIds=guid1&b
   - "Estado: activo"
 - Tabla con productos filtrados
 
+### **Test 9: ? NUEVO - Paginación Básica**
+
+```bash
+# Primera página (50 productos por defecto)
+curl -X GET "https://localhost:7262/api/inventario/resumen"
+
+# Segunda página
+curl -X GET "https://localhost:7262/api/inventario/resumen?page=2"
+
+# Página 3 con 20 productos por página
+curl -X GET "https://localhost:7262/api/inventario/resumen?page=3&pageSize=20"
+```
+
+**Resultado Esperado:**
+```json
+{
+  "page": 2,
+  "pageSize": 50,
+  "totalCount": 150,
+  "totalPages": 3,
+  "productos": [ /* 50 productos de la página 2 */ ]
+}
+```
+
+### **Test 10: ? NUEVO - Paginación con Filtros**
+
+```bash
+# Productos de Electrónica, página 2, 25 por página
+curl -X GET "https://localhost:7262/api/inventario/resumen?categoriaIds=guid-electronica&page=2&pageSize=25"
+```
+
+**Resultado Esperado:**
+- Solo productos de categoría Electrónica
+- Página 2 de resultados
+- Máximo 25 productos en la respuesta
+- `totalCount` muestra el total de productos de Electrónica (sin paginar)
+
 ---
 
 ## ?? Notas Importantes
@@ -348,18 +442,19 @@ curl -X GET "https://localhost:7262/api/inventario/resumen/pdf?bodegaIds=guid1&b
 
 - ?? El servicio actual carga todos los `ProductoBodegas` y luego filtra en memoria
 - ?? **Para Producción:** Considera optimizar con queries LINQ más eficientes usando `IQueryable`
+- ? **Paginación Implementada:** El endpoint ahora devuelve solo `pageSize` productos por request (default: 50, max: 1000)
+- ?? **Totales:** `valorTotal` y `stockTotal` siempre muestran el total de TODOS los productos filtrados, no solo de la página actual
+
+### **Comportamiento de Paginación**
+
+1. **Sin parámetros:** Devuelve página 1 con 50 productos
+2. **Page fuera de rango:** Si `page > totalPages`, devuelve array vacío `productos: []`
+3. **PageSize máximo:** Limitado a 1000 productos por página
+4. **Totales:** Siempre se calculan sobre TODOS los productos filtrados
 
 ### **Mejoras Futuras (Opcional)**
 
-1. **Paginación en `/resumen`:**
-   ```csharp
-   public class InventarioFilterDto
-   {
-       public int Page { get; set; } = 1;
-       public int PageSize { get; set; } = 20;
-       // ...otros filtros
-   }
-   ```
+1. ? **Paginación** - **IMPLEMENTADO**
 
 2. **Ordenamiento:**
    ```csharp
@@ -379,202 +474,6 @@ curl -X GET "https://localhost:7262/api/inventario/resumen/pdf?bodegaIds=guid1&b
 5. **Gráficos en PDF:**
    - Usar QuestPDF para agregar charts de distribución
 
----
-
-## ? Checklist de Implementación
-
-- [x] DTOs creados (`InventarioFilterDto`, `InventarioProductoDto`, `InventarioResumenDto`)
-- [x] Interfaz `IInventarioService` definida
-- [x] Servicio `InventarioService` implementado
-- [x] Interfaz `IPdfGenerator` definida
-- [x] Servicio `PdfGeneratorService` implementado con QuestPDF
-- [x] Controlador `InventarioController` con 2 endpoints
-- [x] Paquete QuestPDF instalado
-- [x] Servicios registrados en DI
-- [x] Licencia QuestPDF configurada
-- [x] Compilación exitosa
-
----
-
-## ?? Próximos Pasos
-
-1. **Probar los endpoints:**
-   ```bash
-   dotnet run
-   # Abrir Scalar: https://localhost:7262/scalar/v1
-   ```
-
-2. **Verificar respuestas:**
-   - GET `/api/inventario/resumen`
-   - GET `/api/inventario/resumen/pdf`
-
-3. **Ajustar filtros** según necesidades del frontend
-
-4. **Optimizar queries** si el dataset es muy grande
-
-5. **Agregar logs** para troubleshooting
-
----
-
-## ?? Casos de Uso Prácticos con Múltiples Filtros
-
-### **Caso 1: Reporte Consolidado de Dos Sucursales**
-
-**Escenario:** Necesitas el inventario total de "Bodega Principal" y "Bodega Norte".
-
-```bash
-GET /api/inventario/resumen?bodegaIds=guid-principal&bodegaIds=guid-norte
-```
-
-**Response:**
-```json
-{
-  "valorTotal": 450000.00,
-  "stockTotal": 250,
-  "filtrosAplicados": {
-    "Bodegas": "Principal, Norte"
-  },
-  "productos": [
-    { "nombre": "Laptop Dell", "bodega": "Principal", ... },
-    { "nombre": "Mouse Logitech", "bodega": "Norte", ... }
-  ]
-}
-```
-
----
-
-### **Caso 2: Inventario de Electrónica y Computadoras en Todas las Bodegas**
-
-**Escenario:** Ver todos los productos de "Electrónica" y "Computadoras" sin importar la bodega.
-
-```bash
-GET /api/inventario/resumen?categoriaIds=guid-electronica&categoriaIds=guid-computadoras
-```
-
-**Response:**
-```json
-{
-  "filtrosAplicados": {
-    "Categorías": "Electrónica, Computadoras"
-  },
-  "productos": [
-    { "nombre": "Laptop Dell", "categoria": "Computadoras", ... },
-    { "nombre": "TV Samsung", "categoria": "Electrónica", ... }
-  ]
-}
-```
-
----
-
-### **Caso 3: Productos Activos de Categorías Específicas en Bodegas Específicas**
-
-**Escenario:** Auditoría de productos activos de "Electrónica" y "Accesorios" en "Principal" y "Norte".
-
-```bash
-GET /api/inventario/resumen?bodegaIds=guid1&bodegaIds=guid2&categoriaIds=guid3&categoriaIds=guid4&estado=activo
-```
-
-**Lógica Aplicada:**
-```
-(bodega = Principal OR bodega = Norte) 
-AND 
-(categoria = Electrónica OR categoria = Accesorios)
-AND
-(estado = activo)
-```
-
----
-
-### **Caso 4: Búsqueda de "Laptop" en Bodegas Específicas**
-
-**Escenario:** Buscar todas las laptops solo en "Principal" y "Sur".
-
-```bash
-GET /api/inventario/resumen?bodegaIds=guid-principal&bodegaIds=guid-sur&q=laptop
-```
-
----
-
-### **Caso 5: Reporte PDF de Productos Inactivos**
-
-**Escenario:** Generar PDF con productos marcados como inactivos en todas las bodegas.
-
-```bash
-GET /api/inventario/resumen/pdf?estado=inactivo
-```
-
-**PDF generado:**
-- Filtros aplicados: "Estado: inactivo"
-- Lista de todos los productos inactivos
-- Útil para planificar limpieza de inventario
-
----
-
-### **Caso 6: Inventario Completo (Sin Filtros)**
-
-**Escenario:** Ver absolutamente todo el inventario (activos e inactivos).
-
-```bash
-GET /api/inventario/resumen?estado=todos
-```
-
----
-
-## ?? Tabla Comparativa: Antes vs Después
-
-| Funcionalidad | Antes | ? Después |
-|---------------|-------|----------|
-| Filtrar por 1 bodega | ? | ? |
-| Filtrar por **múltiples** bodegas | ? | ? |
-| Filtrar por 1 categoría | ? | ? |
-| Filtrar por **múltiples** categorías | ? | ? |
-| Combinar bodegas + categorías | ? | ? |
-| Búsqueda por texto | ? | ? |
-| Filtro por estado | ? | ? |
-| Exportar a PDF con filtros | ? | ? |
-
----
-
-## ?? Formato de Query Strings
-
-### **ASP.NET Core maneja automáticamente arrays en query strings:**
-
-**Múltiples valores con el mismo nombre:**
-```
-?bodegaIds=guid1&bodegaIds=guid2&bodegaIds=guid3
-```
-
-**Se convierte en:**
-```csharp
-filters.BodegaIds = new List<Guid> { guid1, guid2, guid3 }
-```
-
-**Desde JavaScript/TypeScript:**
-```typescript
-// Opción 1: URLSearchParams
-const params = new URLSearchParams();
-params.append('bodegaIds', 'guid1');
-params.append('bodegaIds', 'guid2');
-params.append('estado', 'activo');
-
-fetch(`/api/inventario/resumen?${params}`);
-
-// Opción 2: Construcción manual
-const bodegaIds = ['guid1', 'guid2'];
-const queryString = bodegaIds.map(id => `bodegaIds=${id}`).join('&');
-fetch(`/api/inventario/resumen?${queryString}&estado=activo`);
-```
-
----
-
-## ?? Soporte
-
-Si encuentras algún error:
-- Revisa que todos los servicios estén registrados en `Program.cs`
-- Verifica que QuestPDF esté instalado correctamente
-- Asegúrate de que el connection string de PostgreSQL sea válido
-- Para filtros múltiples, verifica que los GUIDs sean válidos
-
----
-
-**¡Módulo de Inventario con Filtros Múltiples implementado exitosamente!** ??
+6. **Optimización de Queries:**
+   - Usar `IQueryable` para que el filtrado se haga en la base de datos
+   - Evitar cargar todos los productos en memoria

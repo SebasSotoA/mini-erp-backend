@@ -20,7 +20,7 @@ public class InventarioResumenDto
     public int StockTotal { get; set; }
     
     /// <summary>
-    /// List of products with their inventory details
+    /// List of products with their inventory details (paginated)
     /// </summary>
     [JsonPropertyName("productos")]
     public List<InventarioProductoDto> Productos { get; set; } = new();
@@ -36,4 +36,28 @@ public class InventarioResumenDto
     /// </summary>
     [JsonPropertyName("fechaGeneracion")]
     public DateTime FechaGeneracion { get; set; } = DateTime.UtcNow;
+    
+    /// <summary>
+    /// Current page number (for pagination)
+    /// </summary>
+    [JsonPropertyName("page")]
+    public int Page { get; set; }
+    
+    /// <summary>
+    /// Page size (for pagination)
+    /// </summary>
+    [JsonPropertyName("pageSize")]
+    public int PageSize { get; set; }
+    
+    /// <summary>
+    /// Total count of products matching filters (before pagination)
+    /// </summary>
+    [JsonPropertyName("totalCount")]
+    public int TotalCount { get; set; }
+    
+    /// <summary>
+    /// Total number of pages
+    /// </summary>
+    [JsonPropertyName("totalPages")]
+    public int TotalPages { get; set; }
 }

@@ -17,6 +17,22 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.StockActual, opt => opt.Ignore())  // Set manually after DB query
             .ForMember(dest => dest.CategoriaNombre, opt => opt.Ignore());  // Set manually after DB query
         
+        // ProductInBodegaDto inherits from ProductDto
+        CreateMap<Producto, ProductInBodegaDto>()
+            .IncludeBase<Producto, ProductDto>()
+            .ForMember(dest => dest.CantidadEnBodega, opt => opt.Ignore());  // Set manually in service
+        
+        // ProductInCategoriaDto inherits from ProductDto
+        CreateMap<Producto, ProductInCategoriaDto>()
+            .IncludeBase<Producto, ProductDto>()
+            .ForMember(dest => dest.CantidadEnCategoria, opt => opt.Ignore());  // Set manually in service
+        
+        // ProductInCampoExtraDto inherits from ProductDto
+        CreateMap<Producto, ProductInCampoExtraDto>()
+            .IncludeBase<Producto, ProductDto>()
+            .ForMember(dest => dest.CantidadEnCampo, opt => opt.Ignore())  // Set manually in service
+            .ForMember(dest => dest.ValorCampoExtra, opt => opt.Ignore());  // Set manually in service
+        
         CreateMap<CreateProductDto, Producto>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.FechaCreacion, opt => opt.Ignore())

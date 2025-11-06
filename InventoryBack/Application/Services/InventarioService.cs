@@ -20,6 +20,10 @@ public class InventarioService : IInventarioService
         InventarioFilterDto filters, 
         CancellationToken ct = default)
     {
+        // ========== VALIDATE AND NORMALIZE PAGINATION ==========
+        if (filters.Page < 1) filters.Page = 1;
+        if (filters.PageSize < 1 || filters.PageSize > 1000) filters.PageSize = 50;
+
         // ========== BUILD QUERY WITH FILTERS ==========
         
         // Get all ProductoBodegas with related entities
@@ -107,14 +111,30 @@ public class InventarioService : IInventarioService
             stockTotal += cantidad;
         }
 
+        // ========== APPLY PAGINATION ==========
+        
+        var totalCount = productos.Count;
+        var totalPages = (int)Math.Ceiling(totalCount / (double)filters.PageSize);
+        
+        // Apply pagination to the list
+        var paginatedProductos = productos
+            .OrderBy(p => p.Nombre)
+            .Skip((filters.Page - 1) * filters.PageSize)
+            .Take(filters.PageSize)
+            .ToList();
+
         // ========== BUILD RESPONSE ==========
         
         var resumen = new InventarioResumenDto
         {
             ValorTotal = valorTotal,
             StockTotal = stockTotal,
-            Productos = productos.OrderBy(p => p.Nombre).ToList(),
-            FechaGeneracion = DateTime.UtcNow
+            Productos = paginatedProductos,
+            FechaGeneracion = DateTime.UtcNow,
+            Page = filters.Page,
+            PageSize = filters.PageSize,
+            TotalCount = totalCount,
+            TotalPages = totalPages
         };
 
         // Add applied filters for PDF header

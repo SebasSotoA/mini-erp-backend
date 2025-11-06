@@ -98,4 +98,20 @@ public class CategoriasController : ControllerBase
         await _categoriaService.DeletePermanentlyAsync(id, ct);
         return this.NoContentResponse("Categoría eliminada exitosamente.");
     }
+
+    /// <summary>
+    /// Get all products in a specific category with advanced filtering and pagination.
+    /// Uses the same filters as GET /api/productos
+    /// </summary>
+    [HttpGet("{categoriaId:guid}/productos")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<ProductInCategoriaDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<PagedResult<ProductInCategoriaDto>>>> GetProductsInCategoria(
+        Guid categoriaId,
+        [FromQuery] ProductFilterDto filters,
+        CancellationToken ct = default)
+    {
+        var result = await _categoriaService.GetProductsInCategoriaAsync(categoriaId, filters, ct);
+        return this.OkResponse(result, "Productos de la categoría obtenidos correctamente.");
+    }
 }

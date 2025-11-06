@@ -12,4 +12,17 @@ public interface ICampoExtraService
     Task ActivateAsync(Guid id, CancellationToken ct = default);
     Task DeactivateAsync(Guid id, CancellationToken ct = default);
     Task DeletePermanentlyAsync(Guid id, CancellationToken ct = default);
+    
+    /// <summary>
+    /// Gets all products that have this extra field assigned with advanced filtering and pagination.
+    /// Uses the same filters as the Products endpoint.
+    /// </summary>
+    /// <param name="campoExtraId">Extra field ID</param>
+    /// <param name="filters">Product filter criteria</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Paginated list of products with this extra field and their values</returns>
+    Task<PagedResult<ProductInCampoExtraDto>> GetProductsInCampoExtraAsync(
+        Guid campoExtraId, 
+        ProductFilterDto filters, 
+        CancellationToken ct = default);
 }

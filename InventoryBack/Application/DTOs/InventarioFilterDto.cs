@@ -33,4 +33,16 @@ public class InventarioFilterDto
     /// </summary>
     [JsonPropertyName("q")]
     public string? Q { get; set; }
+    
+    /// <summary>
+    /// Page number for pagination (default: 1)
+    /// </summary>
+    [JsonPropertyName("page")]
+    public int Page { get; set; } = 1;
+    
+    /// <summary>
+    /// Page size for pagination (default: 50, max: 1000)
+    /// </summary>
+    [JsonPropertyName("pageSize")]
+    public int PageSize { get; set; } = 50;
 }

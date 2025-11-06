@@ -98,4 +98,20 @@ public class BodegasController : ControllerBase
         await _bodegaService.DeletePermanentlyAsync(id, ct);
         return this.NoContentResponse("Bodega eliminada exitosamente.");
     }
+
+    /// <summary>
+    /// Get all products in a specific warehouse with advanced filtering and pagination.
+    /// Uses the same filters as GET /api/productos
+    /// </summary>
+    [HttpGet("{bodegaId:guid}/productos")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<ProductInBodegaDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<PagedResult<ProductInBodegaDto>>>> GetProductsInBodega(
+        Guid bodegaId,
+        [FromQuery] ProductFilterDto filters,
+        CancellationToken ct = default)
+    {
+        var result = await _bodegaService.GetProductsInBodegaAsync(bodegaId, filters, ct);
+        return this.OkResponse(result, "Productos de la bodega obtenidos correctamente.");
+    }
 }

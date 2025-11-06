@@ -98,4 +98,20 @@ public class CamposExtraController : ControllerBase
         await _campoExtraService.DeletePermanentlyAsync(id, ct);
         return this.NoContentResponse("Campo extra eliminado exitosamente.");
     }
+
+    /// <summary>
+    /// Get all products that have this extra field assigned with advanced filtering and pagination.
+    /// Uses the same filters as GET /api/productos
+    /// </summary>
+    [HttpGet("{campoExtraId:guid}/productos")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<ProductInCampoExtraDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<PagedResult<ProductInCampoExtraDto>>>> GetProductsInCampoExtra(
+        Guid campoExtraId,
+        [FromQuery] ProductFilterDto filters,
+        CancellationToken ct = default)
+    {
+        var result = await _campoExtraService.GetProductsInCampoExtraAsync(campoExtraId, filters, ct);
+        return this.OkResponse(result, "Productos con este campo extra obtenidos correctamente.");
+    }
 }
