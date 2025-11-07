@@ -50,15 +50,15 @@ builder.Services.AddCors(options =>
                     var uri = new Uri(origin);
                     
                     // Permitir el dominio principal
-                    if (uri.Host == "mini-erp-frontend.vercel.app" || 
-                        uri.Host == "www.mini-erp-frontend.vercel.app")
+                    if (uri.Host == "mini-scm.vercel.app" || 
+                        uri.Host == "www.mini-scm.vercel.app")
                     {
                         return true;
                     }
                     
-                    // Permitir preview deployments de Vercel (formato: mini-erp-frontend-*.vercel.app)
+                    // Permitir preview deployments de Vercel (formato: mini-scm-*.vercel.app)
                     if (uri.Host.EndsWith(".vercel.app") && 
-                        uri.Host.StartsWith("mini-erp-frontend"))
+                        uri.Host.StartsWith("mini-scm"))
                     {
                         return true;
                     }
