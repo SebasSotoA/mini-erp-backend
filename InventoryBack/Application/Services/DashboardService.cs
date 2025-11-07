@@ -292,60 +292,89 @@ public class DashboardService : IDashboardService
                 continue;
             }
 
-            // Clasificación por severidad del problema de stock
-            var estadosPorBodega = new List<string>(); // "agotado", "bajo", "alto", "optimo"
+            // Contadores de estados por bodega
+            int bodegasAgotadas = 0;
+            int bodegasBajo = 0;
+            int bodegasAlto = 0;
+            int bodegasOptimo = 0;
+            int bodegasSinLimites = 0;
 
             foreach (var relacion in relacionesBodegas)
             {
                 if (relacion.StockActual == 0)
                 {
-                    estadosPorBodega.Add("agotado");
+                    bodegasAgotadas++;
                 }
-                else if (relacion.CantidadMinima.HasValue && relacion.StockActual < relacion.CantidadMinima.Value)
+                else if (relacion.CantidadMinima.HasValue && relacion.CantidadMaxima.HasValue)
                 {
-                    estadosPorBodega.Add("bajo");
+                    // Tiene ambos límites definidos
+                    if (relacion.StockActual < relacion.CantidadMinima.Value)
+                    {
+                        bodegasBajo++;
+                    }
+                    else if (relacion.StockActual > relacion.CantidadMaxima.Value)
+                    {
+                        bodegasAlto++;
+                    }
+                    else
+                    {
+                        bodegasOptimo++;
+                    }
                 }
-                else if (relacion.CantidadMaxima.HasValue && relacion.StockActual > relacion.CantidadMaxima.Value)
+                else if (relacion.CantidadMinima.HasValue)
                 {
-                    estadosPorBodega.Add("alto");
+                    // Solo tiene mínimo
+                    if (relacion.StockActual < relacion.CantidadMinima.Value)
+                    {
+                        bodegasBajo++;
+                    }
+                    else
+                    {
+                        bodegasOptimo++;
+                    }
                 }
-                else if ((relacion.CantidadMinima.HasValue || relacion.CantidadMaxima.HasValue) && relacion.StockActual > 0)
+                else if (relacion.CantidadMaxima.HasValue)
                 {
-                    // Está dentro del rango definido
-                    estadosPorBodega.Add("optimo");
-                }
-                else if (relacion.StockActual > 0)
-                {
-                    // No tiene límites definidos pero tiene stock
-                    estadosPorBodega.Add("optimo");
+                    // Solo tiene máximo
+                    if (relacion.StockActual > relacion.CantidadMaxima.Value)
+                    {
+                        bodegasAlto++;
+                    }
+                    else
+                    {
+                        bodegasOptimo++;
+                    }
                 }
                 else
                 {
-                    // Caso edge: stock 0 sin límites
-                    estadosPorBodega.Add("agotado");
+                    // No tiene límites definidos en esta bodega
+                    if (relacion.StockActual > 0)
+                    {
+                        bodegasSinLimites++;
+                    }
                 }
             }
 
             // Clasificar el producto según el peor caso encontrado
-            // Prioridad: Agotado > Bajo > Alto > Óptimo
-            if (estadosPorBodega.Contains("agotado") && estadosPorBodega.All(e => e == "agotado"))
+            // Prioridad: Agotado (todas) > Bajo > Alto > Óptimo
+            if (bodegasAgotadas == relacionesBodegas.Count)
             {
                 // TODAS las bodegas están agotadas
                 productosAgotados.Add(producto.Id);
             }
-            else if (estadosPorBodega.Contains("bajo"))
+            else if (bodegasBajo > 0)
             {
-                // Al menos una bodega tiene stock bajo
+                // Tiene al menos una bodega con stock bajo
                 productosBajo.Add(producto.Id);
             }
-            else if (estadosPorBodega.Contains("alto"))
+            else if (bodegasAlto > 0)
             {
-                // Al menos una bodega tiene stock alto (y ninguna con bajo/agotado)
+                // Tiene al menos una bodega con stock alto (y ninguna con bajo)
                 productosAlto.Add(producto.Id);
             }
-            else if (estadosPorBodega.Contains("optimo"))
+            else if (bodegasOptimo > 0 || bodegasSinLimites > 0)
             {
-                // Todas las bodegas están en nivel óptimo
+                // Todas las bodegas están en nivel óptimo o no tienen límites
                 productosOptimo.Add(producto.Id);
             }
             else
