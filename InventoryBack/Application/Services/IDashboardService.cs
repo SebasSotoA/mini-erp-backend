@@ -54,4 +54,18 @@ public interface IDashboardService
     /// <param name="top">Number of products to return (default: 20)</param>
     /// <param name="ct">Cancellation token</param>
     Task<IEnumerable<ProductoStockBajoDto>> GetProductosStockBajoAsync(int top = 20, CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets list of products with high stock (overstock).
+    /// </summary>
+    /// <param name="top">Number of products to return (default: 20)</param>
+    /// <param name="ct">Cancellation token</param>
+    Task<IEnumerable<ProductoStockAltoDto>> GetProductosStockAltoAsync(int top = 20, CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets list of products that are completely out of stock in all warehouses.
+    /// </summary>
+    /// <param name="top">Number of products to return (default: 20)</param>
+    /// <param name="ct">Cancellation token</param>
+    Task<IEnumerable<ProductoAgotadoDto>> GetProductosAgotadosAsync(int top = 20, CancellationToken ct = default);
 }

@@ -292,93 +292,65 @@ public class DashboardService : IDashboardService
                 continue;
             }
 
-            // Verificar el stock en cada bodega donde existe el producto
-            var tieneStockBajo = false;
-            var tieneStockAlto = false;
-            var tieneStockOptimo = false;
-            var estaAgotado = false;
+            // Clasificación por severidad del problema de stock
+            var estadosPorBodega = new List<string>(); // "agotado", "bajo", "alto", "optimo"
 
             foreach (var relacion in relacionesBodegas)
             {
                 if (relacion.StockActual == 0)
                 {
-                    estaAgotado = true;
+                    estadosPorBodega.Add("agotado");
                 }
-                else if (relacion.CantidadMinima.HasValue && relacion.CantidadMaxima.HasValue)
+                else if (relacion.CantidadMinima.HasValue && relacion.StockActual < relacion.CantidadMinima.Value)
                 {
-                    // Tiene ambos límites definidos
-                    if (relacion.StockActual < relacion.CantidadMinima.Value)
-                    {
-                        tieneStockBajo = true;
-                    }
-                    else if (relacion.StockActual > relacion.CantidadMaxima.Value)
-                    {
-                        tieneStockAlto = true;
-                    }
-                    else
-                    {
-                        tieneStockOptimo = true;
-                    }
+                    estadosPorBodega.Add("bajo");
                 }
-                else if (relacion.CantidadMinima.HasValue)
+                else if (relacion.CantidadMaxima.HasValue && relacion.StockActual > relacion.CantidadMaxima.Value)
                 {
-                    // Solo tiene mínimo
-                    if (relacion.StockActual < relacion.CantidadMinima.Value)
-                    {
-                        tieneStockBajo = true;
-                    }
-                    else
-                    {
-                        tieneStockOptimo = true;
-                    }
+                    estadosPorBodega.Add("alto");
                 }
-                else if (relacion.CantidadMaxima.HasValue)
+                else if ((relacion.CantidadMinima.HasValue || relacion.CantidadMaxima.HasValue) && relacion.StockActual > 0)
                 {
-                    // Solo tiene máximo
-                    if (relacion.StockActual > relacion.CantidadMaxima.Value)
-                    {
-                        tieneStockAlto = true;
-                    }
-                    else
-                    {
-                        tieneStockOptimo = true;
-                    }
+                    // Está dentro del rango definido
+                    estadosPorBodega.Add("optimo");
+                }
+                else if (relacion.StockActual > 0)
+                {
+                    // No tiene límites definidos pero tiene stock
+                    estadosPorBodega.Add("optimo");
                 }
                 else
                 {
-                    // No tiene límites definidos en esta bodega
-                    if (relacion.StockActual > 0)
-                    {
-                        tieneStockOptimo = true;
-                    }
+                    // Caso edge: stock 0 sin límites
+                    estadosPorBodega.Add("agotado");
                 }
             }
 
             // Clasificar el producto según el peor caso encontrado
             // Prioridad: Agotado > Bajo > Alto > Óptimo
-            if (estaAgotado && relacionesBodegas.All(r => r.StockActual == 0))
+            if (estadosPorBodega.Contains("agotado") && estadosPorBodega.All(e => e == "agotado"))
             {
-                // Solo está agotado si TODAS las bodegas tienen stock 0
+                // TODAS las bodegas están agotadas
                 productosAgotados.Add(producto.Id);
             }
-            else if (tieneStockBajo)
+            else if (estadosPorBodega.Contains("bajo"))
             {
-                // Tiene al menos una bodega con stock bajo
+                // Al menos una bodega tiene stock bajo
                 productosBajo.Add(producto.Id);
             }
-            else if (tieneStockAlto)
+            else if (estadosPorBodega.Contains("alto"))
             {
-                // Tiene al menos una bodega con stock alto (y ninguna con stock bajo)
+                // Al menos una bodega tiene stock alto (y ninguna con bajo/agotado)
                 productosAlto.Add(producto.Id);
             }
-            else if (tieneStockOptimo)
+            else if (estadosPorBodega.Contains("optimo"))
             {
                 // Todas las bodegas están en nivel óptimo
                 productosOptimo.Add(producto.Id);
             }
             else
             {
-                // No tiene límites definidos en ninguna bodega
+                // Caso fallback
                 productosOptimo.Add(producto.Id);
             }
         }
@@ -439,6 +411,79 @@ public class DashboardService : IDashboardService
 
         return productosStockBajo
             .OrderBy(p => p.Diferencia)
+            .Take(top);
+    }
+
+    public async Task<IEnumerable<ProductoStockAltoDto>> GetProductosStockAltoAsync(int top = 20, CancellationToken ct = default)
+    {
+        var productos = await _unitOfWork.Products.ListAsync(filter: p => p.Activo, ct: ct);
+        var productoBodegas = await _unitOfWork.ProductoBodegas.ListAsync(ct: ct);
+        var bodegas = await _unitOfWork.Bodegas.ListAsync(ct: ct);
+
+        var productosStockAlto = new List<ProductoStockAltoDto>();
+
+        foreach (var producto in productos)
+        {
+            // Obtener todas las relaciones ProductoBodega para este producto
+            var relacionesBodegas = productoBodegas.Where(pb => pb.ProductoId == producto.Id).ToList();
+
+            foreach (var relacion in relacionesBodegas)
+            {
+                // Solo agregar si tiene CantidadMaxima definida y el stock está por encima
+                if (relacion.CantidadMaxima.HasValue && relacion.StockActual > relacion.CantidadMaxima.Value)
+                {
+                    var bodega = bodegas.FirstOrDefault(b => b.Id == relacion.BodegaId);
+                    
+                    productosStockAlto.Add(new ProductoStockAltoDto
+                    {
+                        ProductoId = producto.Id,
+                        ProductoNombre = producto.Nombre,
+                        ProductoSku = producto.CodigoSku,
+                        StockActual = relacion.StockActual,
+                        StockMaximo = relacion.CantidadMaxima.Value,
+                        Diferencia = relacion.StockActual - relacion.CantidadMaxima.Value,
+                        BodegaNombre = bodega?.Nombre ?? "Bodega desconocida"
+                    });
+                }
+            }
+        }
+
+        return productosStockAlto
+            .OrderByDescending(p => p.Diferencia)
+            .Take(top);
+    }
+
+    public async Task<IEnumerable<ProductoAgotadoDto>> GetProductosAgotadosAsync(int top = 20, CancellationToken ct = default)
+    {
+        var productos = await _unitOfWork.Products.ListAsync(filter: p => p.Activo, ct: ct);
+        var productoBodegas = await _unitOfWork.ProductoBodegas.ListAsync(ct: ct);
+        var bodegas = await _unitOfWork.Bodegas.ListAsync(ct: ct);
+
+        var productosAgotados = new List<ProductoAgotadoDto>();
+
+        foreach (var producto in productos)
+        {
+            // Obtener todas las relaciones ProductoBodega para este producto
+            var relacionesBodegas = productoBodegas.Where(pb => pb.ProductoId == producto.Id).ToList();
+
+            // Verificar si está agotado en TODAS las bodegas
+            if (relacionesBodegas.Any() && relacionesBodegas.All(r => r.StockActual == 0))
+            {
+                var bodegasAfectadas = string.Join(", ", relacionesBodegas
+                    .Select(r => bodegas.FirstOrDefault(b => b.Id == r.BodegaId)?.Nombre ?? "Desconocida"));
+
+                productosAgotados.Add(new ProductoAgotadoDto
+                {
+                    ProductoId = producto.Id,
+                    ProductoNombre = producto.Nombre,
+                    ProductoSku = producto.CodigoSku,
+                    CantidadBodegasAfectadas = relacionesBodegas.Count,
+                    BodegasAfectadas = bodegasAfectadas
+                });
+            }
+        }
+
+        return productosAgotados
             .Take(top);
     }
 

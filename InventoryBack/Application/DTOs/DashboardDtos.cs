@@ -203,3 +203,55 @@ public class ProductoStockBajoDto
     [JsonPropertyName("bodegaPrincipal")]
     public string? BodegaPrincipal { get; set; }
 }
+
+// ========== PRODUCTOS CON STOCK ALTO ==========
+
+/// <summary>
+/// DTO for products with high stock (overstock).
+/// </summary>
+public class ProductoStockAltoDto
+{
+    [JsonPropertyName("productoId")]
+    public Guid ProductoId { get; set; }
+
+    [JsonPropertyName("productoNombre")]
+    public string ProductoNombre { get; set; } = string.Empty;
+
+    [JsonPropertyName("productoSku")]
+    public string? ProductoSku { get; set; }
+
+    [JsonPropertyName("stockActual")]
+    public int StockActual { get; set; }
+
+    [JsonPropertyName("stockMaximo")]
+    public int StockMaximo { get; set; }
+
+    [JsonPropertyName("diferencia")]
+    public int Diferencia { get; set; }
+
+    [JsonPropertyName("bodegaNombre")]
+    public string? BodegaNombre { get; set; }
+}
+
+// ========== PRODUCTOS AGOTADOS ==========
+
+/// <summary>
+/// DTO for products that are completely out of stock in all warehouses.
+/// </summary>
+public class ProductoAgotadoDto
+{
+    [JsonPropertyName("productoId")]
+    public Guid ProductoId { get; set; }
+
+    [JsonPropertyName("productoNombre")]
+    public string ProductoNombre { get; set; } = string.Empty;
+
+    [JsonPropertyName("productoSku")]
+    public string? ProductoSku { get; set; }
+
+    [JsonPropertyName("cantidadBodegasAfectadas")]
+    public int CantidadBodegasAfectadas { get; set; }
+
+    [JsonPropertyName("bodegasAfectadas")]
+    public string BodegasAfectadas { get; set; } = string.Empty;
+}

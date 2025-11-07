@@ -154,4 +154,42 @@ public class DashboardController : ControllerBase
         var productosStockBajo = await _dashboardService.GetProductosStockBajoAsync(top, ct);
         return this.OkResponse(productosStockBajo, $"Top {top} productos con stock bajo obtenidos correctamente.");
     }
+
+    /// <summary>
+    /// Gets list of products with high stock (overstock).
+    /// </summary>
+    /// <param name="top">Number of products to return (default: 20, max: 100)</param>
+    /// <param name="ct">Cancellation token</param>
+    [HttpGet("productos-stock-alto")]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<ProductoStockAltoDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<IEnumerable<ProductoStockAltoDto>>>> GetProductosStockAlto(
+        [FromQuery] int top = 20,
+        CancellationToken ct = default)
+    {
+        // Validate top parameter
+        if (top < 1) top = 20;
+        if (top > 100) top = 100;
+
+        var productosStockAlto = await _dashboardService.GetProductosStockAltoAsync(top, ct);
+        return this.OkResponse(productosStockAlto, $"Top {top} productos con stock alto obtenidos correctamente.");
+    }
+
+    /// <summary>
+    /// Gets list of products that are completely out of stock in all warehouses.
+    /// </summary>
+    /// <param name="top">Number of products to return (default: 20, max: 100)</param>
+    /// <param name="ct">Cancellation token</param>
+    [HttpGet("productos-agotados")]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<ProductoAgotadoDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<IEnumerable<ProductoAgotadoDto>>>> GetProductosAgotados(
+        [FromQuery] int top = 20,
+        CancellationToken ct = default)
+    {
+        // Validate top parameter
+        if (top < 1) top = 20;
+        if (top > 100) top = 100;
+
+        var productosAgotados = await _dashboardService.GetProductosAgotadosAsync(top, ct);
+        return this.OkResponse(productosAgotados, $"Top {top} productos agotados obtenidos correctamente.");
+    }
 }
