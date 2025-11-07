@@ -89,7 +89,8 @@ builder.Services.AddScoped<IProveedorService, ProveedorService>();
 builder.Services.AddScoped<IMovimientoInventarioService, MovimientoInventarioService>();
 builder.Services.AddScoped<ISkuGeneratorService, SkuGeneratorService>();
 builder.Services.AddScoped<IStorageService, StorageService>();
-builder.Services.AddScoped<IInventarioService, InventarioService>(); // ? NUEVO
+builder.Services.AddScoped<IInventarioService, InventarioService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>(); // ?? Dashboard Analytics
 
 // HttpClient for StorageService
 builder.Services.AddHttpClient();

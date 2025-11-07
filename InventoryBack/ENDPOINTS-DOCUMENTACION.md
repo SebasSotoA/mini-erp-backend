@@ -17,6 +17,7 @@
 7. [Movimientos de Inventario](#7??-movimientos-de-inventario-apimovimientos-inventario-read-only)
 8. [Facturas de Venta](#8??-facturas-de-venta-apifacturas-venta)
 9. [Facturas de Compra](#9??-facturas-de-compra-apifacturas-compra)
+10. [Dashboard y Analytics](#10??-dashboard-y-analytics-apidashboard)
 
 ---
 
@@ -1547,5 +1548,417 @@ Para más información sobre el uso de estos endpoints, consulta:
 ---
 
 **Última actualización:** Enero 2024  
+**Versión:** 1.0.0  
+**Framework:** .NET 9
+
+---
+
+## 10?? Dashboard y Analytics `/api/dashboard`
+
+**?? Propósito:** Endpoints especializados para visualizaciones de datos y gráficas en el frontend. Todos los cálculos y agregaciones se realizan en el backend para máxima performance.
+
+### ?? Endpoints Disponibles
+
+| Método | Endpoint | Descripción | Tipo de Gráfica |
+|--------|----------|-------------|-----------------|
+| `GET` | `/api/dashboard/metrics` | Métricas principales (cards) | KPIs/Cards |
+| `GET` | `/api/dashboard/top-productos-vendidos` | Top N productos más vendidos | Bar Chart |
+| `GET` | `/api/dashboard/tendencia-ventas` | Tendencia de ventas por fecha | Line Chart |
+| `GET` | `/api/dashboard/distribucion-categorias` | Distribución por categoría | Pie Chart |
+| `GET` | `/api/dashboard/movimientos-stock` | Entradas vs Salidas | Stacked Bar Chart |
+| `GET` | `/api/dashboard/stock-por-bodega` | Comparación por bodega | Grouped Bar Chart |
+| `GET` | `/api/dashboard/salud-stock` | Gauge de salud del stock | Gauge/Doughnut |
+| `GET` | `/api/dashboard/productos-stock-bajo` | Productos con stock bajo | Table |
+
+---
+
+### 1?? GET `/api/dashboard/metrics` - Métricas Principales
+
+**Descripción:** Obtiene métricas clave para mostrar en cards/KPIs del dashboard.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "totalProductos": 250,
+    "totalBodegas": 5,
+    "ventasDelMes": 125000000.00,
+    "comprasDelMes": 85000000.00,
+    "productosStockBajo": 15,
+    "valorTotalInventario": 450000000.00,
+    "margenBruto": 40000000.00,
+    "porcentajeMargen": 32.00
+  }
+}
+```
+
+**Métricas Incluidas:**
+
+| Métrica | Cálculo |
+|---------|---------|
+| `totalProductos` | COUNT(productos activos) |
+| `totalBodegas` | COUNT(bodegas activas) |
+| `ventasDelMes` | SUM(total facturas venta mes actual) |
+| `comprasDelMes` | SUM(total facturas compra mes actual) |
+| `productosStockBajo` | COUNT(stock < mínimo) |
+| `valorTotalInventario` | SUM(precioBase * stockActual) |
+| `margenBruto` | ventasDelMes - comprasDelMes |
+| `porcentajeMargen` | (margenBruto / ventasDelMes) * 100 |
+
+---
+
+### 2?? GET `/api/dashboard/top-productos-vendidos` - Top Productos
+
+**Query Parameters:**
+- `top` (default: 10, max: 50): Número de productos
+
+**Request:**
+```bash
+GET /api/dashboard/top-productos-vendidos?top=10
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "productoId": "guid",
+      "productoNombre": "Laptop Dell XPS 15",
+      "productoSku": "LAP-DELL-001",
+      "cantidadVendida": 150,
+      "valorTotal": 825000000.00
+    }
+  ]
+}
+```
+
+**Uso:** Bar Chart horizontal con top productos más vendidos.
+
+---
+
+### 3?? GET `/api/dashboard/tendencia-ventas` - Tendencia de Ventas
+
+**Query Parameters:**
+- `dias` (default: 30, max: 365): Días a analizar
+
+**Request:**
+```bash
+GET /api/dashboard/tendencia-ventas?dias=30
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "fecha": "2025-01-01T00:00:00Z",
+      "totalVentas": 5500000.00,
+      "cantidadFacturas": 12
+    }
+  ]
+}
+```
+
+**Uso:** Line Chart mostrando tendencia de ventas diarias.
+
+---
+
+### 4?? GET `/api/dashboard/distribucion-categorias` - Distribución por Categoría
+
+**Request:**
+```bash
+GET /api/dashboard/distribucion-categorias
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "categoriaId": "guid",
+      "categoriaNombre": "Electrónica",
+      "cantidadProductos": 75,
+      "stockTotal": 450,
+      "valorTotal": 250000000.00
+    }
+  ]
+}
+```
+
+**Uso:** Pie Chart o Doughnut Chart mostrando distribución del inventario.
+
+---
+
+### 5?? GET `/api/dashboard/movimientos-stock` - Movimientos de Stock
+
+**Query Parameters:**
+- `dias` (default: 30, max: 365): Días a analizar
+
+**Request:**
+```bash
+GET /api/dashboard/movimientos-stock?dias=30
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "fecha": "2025-01-01T00:00:00Z",
+      "entradas": 150,
+      "salidas": 85,
+      "neto": 65
+    }
+  ]
+}
+```
+
+**Campos:**
+- `entradas`: Compras (movimientos COMPRA positivos)
+- `salidas`: Ventas (movimientos VENTA positivos)
+- `neto`: Diferencia entre entradas y salidas
+
+**Uso:** Stacked Bar Chart mostrando entradas vs salidas.
+
+---
+
+### 6?? GET `/api/dashboard/stock-por-bodega` - Stock por Bodega
+
+**Request:**
+```bash
+GET /api/dashboard/stock-por-bodega
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "bodegaId": "guid",
+      "bodegaNombre": "Bodega Principal",
+      "cantidadProductos": 180,
+      "stockTotal": 1250,
+      "valorTotal": 350000000.00
+    }
+  ]
+}
+```
+
+**Uso:** Grouped Bar Chart comparando stock y valor por bodega.
+
+---
+
+### 7?? GET `/api/dashboard/salud-stock` - Salud del Stock
+
+**Request:**
+```bash
+GET /api/dashboard/salud-stock
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "productosStockOptimo": 180,
+    "productosStockBajo": 25,
+    "productosStockAlto": 10,
+    "productosAgotados": 5,
+    "totalProductos": 220,
+    "porcentajeStockOptimo": 81.82,
+    "porcentajeStockBajo": 11.36,
+    "porcentajeStockAlto": 4.55,
+    "porcentajeAgotados": 2.27
+  }
+}
+```
+
+**Definiciones:**
+- **Stock Óptimo:** Entre mínimo y máximo
+- **Stock Bajo:** Menor al mínimo
+- **Stock Alto:** Mayor al máximo
+- **Agotados:** Stock = 0
+
+**Uso:** Gauge Chart o Doughnut Chart mostrando salud general del inventario.
+
+---
+
+### 8?? GET `/api/dashboard/productos-stock-bajo` - Productos con Stock Bajo
+
+**Query Parameters:**
+- `top` (default: 20, max: 100): Número de productos
+
+**Request:**
+```bash
+GET /api/dashboard/productos-stock-bajo?top=20
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "productoId": "guid",
+      "productoNombre": "Laptop Dell XPS 15",
+      "productoSku": "LAP-DELL-001",
+      "stockActual": 5,
+      "stockMinimo": 10,
+      "diferencia": -5,
+      "bodegaPrincipal": "Bodega Principal"
+    }
+  ]
+}
+```
+
+**Nota:** Ordenados por diferencia ascendente (más críticos primero).
+
+**Uso:** Tabla con alertas de productos que necesitan reposición.
+
+---
+
+## ?? Ejemplos de Integración con Frontend
+
+### **Ejemplo 1: Métricas en Cards**
+
+```jsx
+function DashboardCards() {
+  const [metrics, setMetrics] = useState(null);
+
+  useEffect(() => {
+    fetch('/api/dashboard/metrics')
+      .then(res => res.json())
+      .then(data => setMetrics(data.data));
+  }, []);
+
+  return (
+    <div className="grid grid-cols-4 gap-4">
+      <Card title="Ventas del Mes" value={formatCurrency(metrics?.ventasDelMes)} />
+      <Card title="Stock Bajo" value={metrics?.productosStockBajo} color="red" />
+      <Card title="Margen" value={`${metrics?.porcentajeMargen}%`} />
+    </div>
+  );
+}
+```
+
+### **Ejemplo 2: Gráfica de Top Productos (Chart.js)**
+
+```jsx
+import { Bar } from 'react-chartjs-2';
+
+function TopProductosChart() {
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+    fetch('/api/dashboard/top-productos-vendidos?top=10')
+      .then(res => res.json())
+      .then(res => setData(res.data));
+  }, []);
+
+  const chartData = {
+    labels: data.map(p => p.productoNombre),
+    datasets: [{
+      label: 'Cantidad Vendida',
+      data: data.map(p => p.cantidadVendida),
+      backgroundColor: 'rgba(54, 162, 235, 0.5)'
+    }]
+  };
+
+  return <Bar data={chartData} options={{ indexAxis: 'y' }} />;
+}
+```
+
+### **Ejemplo 3: Tendencia de Ventas (Line Chart)**
+
+```jsx
+import { Line } from 'react-chartjs-2';
+
+function TendenciaVentasChart() {
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+    fetch('/api/dashboard/tendencia-ventas?dias=30')
+      .then(res => res.json())
+      .then(res => setData(res.data));
+  }, []);
+
+  const chartData = {
+    labels: data.map(d => new Date(d.fecha).toLocaleDateString()),
+    datasets: [{
+      label: 'Ventas Diarias',
+      data: data.map(d => d.totalVentas),
+      borderColor: 'rgb(75, 192, 192)',
+      tension: 0.1
+    }]
+  };
+
+  return <Line data={chartData} />;
+}
+```
+
+---
+
+## ?? Documentación Completa
+
+Para **documentación detallada** con todos los ejemplos de código, integración con librerías de gráficas, y casos de uso, consulta:
+
+**?? [DASHBOARD-DOCUMENTACION.md](./DASHBOARD-DOCUMENTACION.md)**
+
+Incluye:
+- ? Descripción detallada de cada endpoint
+- ? Ejemplos completos de requests/responses
+- ? Código de integración con Chart.js, Recharts, ApexCharts
+- ? Ejemplos de gráficas configuradas
+- ? Casos de uso comunes
+- ? Recomendaciones de performance
+
+---
+
+## ? Performance y Caching
+
+**Frecuencias de Refresh Recomendadas:**
+
+| Endpoint | Frecuencia | Caching |
+|----------|-----------|---------|
+| Métricas | 5 minutos | ? Sí |
+| Top Productos | 30 minutos | ? Sí |
+| Tendencia Ventas | 1 hora | ? Sí |
+| Distribución Categorías | 1 hora | ? Sí |
+| Movimientos Stock | 15 minutos | ? Sí |
+| Stock por Bodega | 30 minutos | ? Sí |
+| Salud Stock | 30 minutos | ? Sí |
+| Stock Bajo | 15 minutos | ? Sí |
+
+---
+
+## ?? Resumen
+
+? **8 endpoints especializados** para dashboards  
+? **Datos agregados** listos para visualización  
+? **Cálculos en backend** para máxima performance  
+? **Fácil integración** con librerías de gráficas  
+? **Documentación completa** con ejemplos  
+
+**El frontend solo necesita consumir y renderizar.** ????
+
+---
+
+## ?? Soporte
+
+Para más información sobre el uso de estos endpoints, consulta:
+- **Documentación detallada:** [DASHBOARD-DOCUMENTACION.md](./DASHBOARD-DOCUMENTACION.md)
+- **Código fuente:** `/InventoryBack/API/Controllers/DashboardController.cs`
+- **Servicios:** `/InventoryBack/Application/Services/DashboardService.cs`
+- **DTOs:** `/InventoryBack/Application/DTOs/DashboardDtos.cs`
+
+---
+
+**Última actualización:** Enero 2025  
 **Versión:** 1.0.0  
 **Framework:** .NET 9
