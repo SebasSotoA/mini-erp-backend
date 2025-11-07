@@ -22,27 +22,53 @@ QuestPDF.Settings.License = LicenseType.Community;
 var builder = WebApplication.CreateBuilder(args);
 
 // ========== CORS CONFIGURATION ==========
-string[] allowedOrigins;
-
-if (builder.Environment.IsDevelopment())
-{
-    // Development: Allow localhost ports (Vite, React, etc.)
-    allowedOrigins = new[] { "http://localhost:3000" };
-}
-else
-{
-    // Production: Only allow your production frontend domain
-    allowedOrigins = new[] { "https://mini-erp-frontend.vercel.app" };
-}
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("CorsPolicy", policy =>
     {
-        policy.WithOrigins(allowedOrigins)
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials(); // Enable if you need to send cookies/auth headers
+        if (builder.Environment.IsDevelopment())
+        {
+            // Development: Allow localhost
+            policy.WithOrigins(
+                    "http://localhost:3000",
+                    "http://localhost:5173",
+                    "http://localhost:5174"
+                )
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        }
+        else
+        {
+            // Production: Allow Vercel domains dynamically
+            policy.SetIsOriginAllowed(origin =>
+                {
+                    // Permitir dominios específicos de Vercel
+                    if (string.IsNullOrEmpty(origin))
+                        return false;
+
+                    var uri = new Uri(origin);
+                    
+                    // Permitir el dominio principal
+                    if (uri.Host == "mini-erp-frontend.vercel.app" || 
+                        uri.Host == "www.mini-erp-frontend.vercel.app")
+                    {
+                        return true;
+                    }
+                    
+                    // Permitir preview deployments de Vercel (formato: mini-erp-frontend-*.vercel.app)
+                    if (uri.Host.EndsWith(".vercel.app") && 
+                        uri.Host.StartsWith("mini-erp-frontend"))
+                    {
+                        return true;
+                    }
+                    
+                    return false;
+                })
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        }
     });
 });
 
