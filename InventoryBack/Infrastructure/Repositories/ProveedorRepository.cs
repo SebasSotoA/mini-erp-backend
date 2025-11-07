@@ -1,3 +1,4 @@
+using InventoryBack.Application.DTOs;
 using InventoryBack.Application.Interfaces;
 using InventoryBack.Domain.Entities;
 using InventoryBack.Infrastructure.Data;
@@ -58,5 +59,94 @@ public class ProveedorRepository : EfGenericRepository<Proveedor>, IProveedorRep
         return await _dbSet
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Identificacion == identificacion, ct);
+    }
+
+    public async Task<(IEnumerable<Proveedor> Items, int TotalCount)> GetPagedAsync(
+        ProveedorFilterDto filters,
+        CancellationToken ct = default)
+    {
+        // Validate and normalize pagination
+        if (filters.Page < 1) filters.Page = 1;
+        if (filters.PageSize < 1 || filters.PageSize > 100) filters.PageSize = 20;
+
+        IQueryable<Proveedor> query = _dbSet.AsNoTracking();
+
+        // Apply filters
+        query = ApplyFilters(query, filters);
+
+        // Apply ordering
+        query = ApplyOrdering(query, filters.OrderBy, filters.OrderDesc);
+
+        // Get total count
+        var totalCount = await query.CountAsync(ct);
+
+        // Apply pagination
+        var items = await query
+            .Skip((filters.Page - 1) * filters.PageSize)
+            .Take(filters.PageSize)
+            .ToListAsync(ct);
+
+        return (items, totalCount);
+    }
+
+    // ========== PRIVATE HELPER METHODS ==========
+
+    private IQueryable<Proveedor> ApplyFilters(IQueryable<Proveedor> query, ProveedorFilterDto filters)
+    {
+        // Filter by nombre (partial match, case-insensitive)
+        if (!string.IsNullOrWhiteSpace(filters.Nombre))
+        {
+            var nombre = filters.Nombre.Trim().ToLower();
+            query = query.Where(p => p.Nombre.ToLower().Contains(nombre));
+        }
+
+        // Filter by identificacion (partial match, case-insensitive)
+        if (!string.IsNullOrWhiteSpace(filters.Identificacion))
+        {
+            var identificacion = filters.Identificacion.Trim().ToLower();
+            query = query.Where(p => p.Identificacion.ToLower().Contains(identificacion));
+        }
+
+        // Filter by correo (partial match, case-insensitive)
+        if (!string.IsNullOrWhiteSpace(filters.Correo))
+        {
+            var correo = filters.Correo.Trim().ToLower();
+            query = query.Where(p => p.Correo != null && p.Correo.ToLower().Contains(correo));
+        }
+
+        // Filter by status
+        if (filters.Activo.HasValue)
+        {
+            query = query.Where(p => p.Activo == filters.Activo.Value);
+        }
+
+        return query;
+    }
+
+    private IQueryable<Proveedor> ApplyOrdering(
+        IQueryable<Proveedor> query,
+        string? orderBy,
+        bool orderDesc)
+    {
+        var field = orderBy?.ToLower() ?? "nombre";
+
+        return field switch
+        {
+            "identificacion" => orderDesc
+                ? query.OrderByDescending(p => p.Identificacion)
+                : query.OrderBy(p => p.Identificacion),
+
+            "correo" => orderDesc
+                ? query.OrderByDescending(p => p.Correo)
+                : query.OrderBy(p => p.Correo),
+
+            "fecha" => orderDesc
+                ? query.OrderByDescending(p => p.FechaCreacion)
+                : query.OrderBy(p => p.FechaCreacion),
+
+            "nombre" or _ => orderDesc
+                ? query.OrderByDescending(p => p.Nombre)
+                : query.OrderBy(p => p.Nombre)
+        };
     }
 }

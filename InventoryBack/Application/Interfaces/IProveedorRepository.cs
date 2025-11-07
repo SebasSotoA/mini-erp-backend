@@ -1,3 +1,4 @@
+using InventoryBack.Application.DTOs;
 using InventoryBack.Domain.Entities;
 
 namespace InventoryBack.Application.Interfaces;
@@ -26,4 +27,11 @@ public interface IProveedorRepository : IGenericRepository<Proveedor>
     /// Gets a proveedor by identificacion.
     /// </summary>
     Task<Proveedor?> GetByIdentificacionAsync(string identificacion, CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets a paginated list of proveedores with filtering and sorting.
+    /// </summary>
+    Task<(IEnumerable<Proveedor> Items, int TotalCount)> GetPagedAsync(
+        ProveedorFilterDto filters,
+        CancellationToken ct = default);
 }

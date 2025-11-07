@@ -57,107 +57,129 @@ public class FacturaCompraService : IFacturaCompraService
             }
         }
 
-        // ========== 2. GENERATE INVOICE NUMBER ==========
-
-        var numeroFactura = await _unitOfWork.FacturasCompra.GetNextInvoiceNumberAsync(ct);
-
-        // ========== 3. CREATE FACTURA ==========
-
-        var factura = new FacturaCompra
+        // ========== 2. USE TRANSACTION FOR ATOMIC OPERATION ==========
+        
+        using var transaction = await _unitOfWork.BeginTransactionAsync(ct);
+        
+        try
         {
-            Id = Guid.NewGuid(),
-            NumeroFactura = numeroFactura,
-            BodegaId = dto.BodegaId,
-            ProveedorId = dto.ProveedorId,
-            Fecha = dto.Fecha,
-            Observaciones = dto.Observaciones?.Trim(),
-            Estado = "Completada",
-            Total = 0 // Se calculará
-        };
+            // ========== 3. GENERATE INVOICE NUMBER ==========
 
-        await _unitOfWork.FacturasCompra.AddAsync(factura, ct);
+            var numeroFactura = await _unitOfWork.FacturasCompra.GetNextInvoiceNumberAsync(ct);
 
-        // ========== 4. CREATE INVOICE DETAILS AND CALCULATE TOTAL ==========
+            // ========== 4. CREATE FACTURA ==========
 
-        decimal total = 0;
-        var detalles = new List<FacturaCompraDetalle>();
-
-        foreach (var itemDto in dto.Items)
-        {
-            var totalLinea = CalculateTotalLinea(
-                itemDto.CostoUnitario,
-                itemDto.Cantidad,
-                itemDto.Descuento,
-                itemDto.Impuesto
-            );
-
-            var detalle = new FacturaCompraDetalle
+            var factura = new FacturaCompra
             {
                 Id = Guid.NewGuid(),
-                FacturaCompraId = factura.Id,
-                ProductoId = itemDto.ProductoId,
-                CostoUnitario = itemDto.CostoUnitario,
-                Descuento = itemDto.Descuento,
-                Impuesto = itemDto.Impuesto,
-                Cantidad = itemDto.Cantidad,
-                TotalLinea = totalLinea
+                NumeroFactura = numeroFactura,
+                BodegaId = dto.BodegaId,
+                ProveedorId = dto.ProveedorId,
+                Fecha = dto.Fecha,
+                Observaciones = dto.Observaciones?.Trim(),
+                Estado = "Completada",
+                Total = 0 // Se calculará
             };
 
-            detalles.Add(detalle);
-            total += totalLinea;
+            await _unitOfWork.FacturasCompra.AddAsync(factura, ct);
+            
+            // ? SAVE FACTURA FIRST to generate the ID in database
+            await _unitOfWork.SaveChangesAsync(ct);
 
-            await _unitOfWork.FacturasCompraDetalle.AddAsync(detalle, ct);
+            // ========== 5. CREATE INVOICE DETAILS AND CALCULATE TOTAL ==========
 
-            // ========== ACTUALIZAR STOCK (CRÍTICO) ==========
-            var productoBodega = await _unitOfWork.ProductoBodegas.GetByProductAndBodegaAsync(itemDto.ProductoId, dto.BodegaId, ct);
-            if (productoBodega != null)
+            decimal total = 0;
+            var detalles = new List<FacturaCompraDetalle>();
+
+            foreach (var itemDto in dto.Items)
             {
-                productoBodega.StockActual += itemDto.Cantidad;
-                _unitOfWork.ProductoBodegas.Update(productoBodega);
-            }
-            else
-            {
-                // If product doesn't exist in this bodega, create relationship
-                var newProductoBodega = new ProductoBodega
+                var totalLinea = CalculateTotalLinea(
+                    itemDto.CostoUnitario,
+                    itemDto.Cantidad,
+                    itemDto.Descuento,
+                    itemDto.Impuesto
+                );
+
+                var detalle = new FacturaCompraDetalle
+                {
+                    Id = Guid.NewGuid(),
+                    FacturaCompraId = factura.Id,  // Now this ID exists in DB
+                    ProductoId = itemDto.ProductoId,
+                    CostoUnitario = itemDto.CostoUnitario,
+                    Descuento = itemDto.Descuento,
+                    Impuesto = itemDto.Impuesto,
+                    Cantidad = itemDto.Cantidad,
+                    TotalLinea = totalLinea
+                };
+
+                detalles.Add(detalle);
+                total += totalLinea;
+
+                await _unitOfWork.FacturasCompraDetalle.AddAsync(detalle, ct);
+
+                // ========== ACTUALIZAR STOCK (CRÍTICO) ==========
+                var productoBodega = await _unitOfWork.ProductoBodegas.GetByProductAndBodegaAsync(itemDto.ProductoId, dto.BodegaId, ct);
+                if (productoBodega != null)
+                {
+                    productoBodega.StockActual += itemDto.Cantidad;
+                    _unitOfWork.ProductoBodegas.Update(productoBodega);
+                }
+                else
+                {
+                    // If product doesn't exist in this bodega, create relationship
+                    var newProductoBodega = new ProductoBodega
+                    {
+                        Id = Guid.NewGuid(),
+                        ProductoId = itemDto.ProductoId,
+                        BodegaId = dto.BodegaId,
+                        StockActual = itemDto.Cantidad,
+                        CantidadMinima = null,
+                        CantidadMaxima = null
+                    };
+                    await _unitOfWork.ProductoBodegas.AddAsync(newProductoBodega, ct);
+                }
+
+                // ========== CREATE INVENTORY MOVEMENT (TRAZABILIDAD) ==========
+                var movimiento = new MovimientoInventario
                 {
                     Id = Guid.NewGuid(),
                     ProductoId = itemDto.ProductoId,
                     BodegaId = dto.BodegaId,
-                    StockActual = itemDto.Cantidad,
-                    CantidadMinima = null,
-                    CantidadMaxima = null
+                    Fecha = dto.Fecha,
+                    TipoMovimiento = "COMPRA",
+                    Cantidad = itemDto.Cantidad,
+                    CostoUnitario = itemDto.CostoUnitario,
+                    Observacion = $"Compra - Factura {numeroFactura}",
+                    FacturaVentaId = null,
+                    FacturaCompraId = factura.Id
                 };
-                await _unitOfWork.ProductoBodegas.AddAsync(newProductoBodega, ct);
+
+                await _unitOfWork.MovimientosInventario.AddAsync(movimiento, ct);
             }
 
-            // ========== CREATE INVENTORY MOVEMENT (TRAZABILIDAD) ==========
-            var movimiento = new MovimientoInventario
-            {
-                Id = Guid.NewGuid(),
-                ProductoId = itemDto.ProductoId,
-                BodegaId = dto.BodegaId,
-                Fecha = dto.Fecha,
-                TipoMovimiento = "COMPRA",
-                Cantidad = itemDto.Cantidad,
-                CostoUnitario = itemDto.CostoUnitario,
-                Observacion = $"Compra - Factura {numeroFactura}",
-                FacturaVentaId = null,
-                FacturaCompraId = factura.Id
-            };
+            // ========== 6. UPDATE FACTURA TOTAL ==========
+            
+            factura.Total = total;
+            _unitOfWork.FacturasCompra.Update(factura);
 
-            await _unitOfWork.MovimientosInventario.AddAsync(movimiento, ct);
+            // ========== 7. SAVE ALL REMAINING CHANGES ==========
+
+            await _unitOfWork.SaveChangesAsync(ct);
+            
+            // ========== 8. COMMIT TRANSACTION ==========
+            
+            await transaction.CommitAsync(ct);
+
+            // ========== 9. RETURN DTO ==========
+
+            return await MapToDto(factura, detalles, bodega.Nombre, proveedor.Nombre, ct);
         }
-
-        factura.Total = total;
-        _unitOfWork.FacturasCompra.Update(factura);
-
-        // ========== 5. SAVE ALL CHANGES ==========
-
-        await _unitOfWork.SaveChangesAsync(ct);
-
-        // ========== 6. RETURN DTO ==========
-
-        return await MapToDto(factura, detalles, bodega.Nombre, proveedor.Nombre, ct);
+        catch
+        {
+            // Rollback on any error
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
     }
 
     public async Task<FacturaCompraDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -191,6 +213,30 @@ public class FacturaCompraService : IFacturaCompraService
         }
 
         return result;
+    }
+
+    public async Task<PagedResult<FacturaCompraDto>> GetPagedAsync(FacturaCompraFilterDto filters, CancellationToken ct = default)
+    {
+        var (items, totalCount) = await _unitOfWork.FacturasCompra.GetPagedAsync(filters, ct);
+
+        var result = new List<FacturaCompraDto>();
+
+        foreach (var factura in items)
+        {
+            var detalles = await _unitOfWork.FacturasCompra.GetDetallesAsync(factura.Id, ct);
+            var bodega = await _unitOfWork.Bodegas.GetByIdAsync(factura.BodegaId, ct);
+            var proveedor = await _unitOfWork.Proveedores.GetByIdAsync(factura.ProveedorId, ct);
+
+            result.Add(await MapToDto(factura, detalles, bodega?.Nombre, proveedor?.Nombre, ct));
+        }
+
+        return new PagedResult<FacturaCompraDto>
+        {
+            Items = result,
+            Page = filters.Page,
+            PageSize = filters.PageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)

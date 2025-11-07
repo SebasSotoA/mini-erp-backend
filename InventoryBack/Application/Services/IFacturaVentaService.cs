@@ -21,6 +21,11 @@ public interface IFacturaVentaService
     /// Gets all sales invoices.
     /// </summary>
     Task<IEnumerable<FacturaVentaDto>> GetAllAsync(CancellationToken ct = default);
+    
+    /// <summary>
+    /// Gets a paginated list of sales invoices with filtering and sorting.
+    /// </summary>
+    Task<PagedResult<FacturaVentaDto>> GetPagedAsync(FacturaVentaFilterDto filters, CancellationToken ct = default);
 
     /// <summary>
     /// Cancels (anula) a sales invoice using soft delete.

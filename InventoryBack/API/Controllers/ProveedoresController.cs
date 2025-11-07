@@ -20,17 +20,16 @@ public class ProveedoresController : ControllerBase
     }
 
     /// <summary>
-    /// Gets all suppliers.
+    /// Gets all suppliers with filtering, sorting, and pagination.
     /// </summary>
-    /// <param name="soloActivos">Filter by active status (null = all, true = active only, false = inactive only)</param>
     [HttpGet]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<ProveedorDto>>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<ApiResponse<IEnumerable<ProveedorDto>>>> GetAll(
-        [FromQuery] bool? soloActivos = null,
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<ProveedorDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<PagedResult<ProveedorDto>>>> GetAll(
+        [FromQuery] ProveedorFilterDto filters,
         CancellationToken ct = default)
     {
-        var proveedores = await _proveedorService.GetAllAsync(soloActivos, ct);
-        return this.OkResponse(proveedores, "Proveedores obtenidos correctamente.");
+        var result = await _proveedorService.GetPagedAsync(filters, ct);
+        return this.OkResponse(result, "Proveedores obtenidos correctamente.");
     }
 
     /// <summary>

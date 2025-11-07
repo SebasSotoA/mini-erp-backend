@@ -1,17 +1,12 @@
 using FluentValidation;
 using InventoryBack.Application.DTOs;
-using InventoryBack.Application.Interfaces;
 
 namespace InventoryBack.Application.Validators;
 
 public class CreateVendedorDtoValidator : AbstractValidator<CreateVendedorDto>
 {
-    private readonly IUnitOfWork _unitOfWork;
-
-    public CreateVendedorDtoValidator(IUnitOfWork unitOfWork)
+    public CreateVendedorDtoValidator()
     {
-        _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
-
         RuleFor(x => x.Nombre)
             .NotEmpty().WithMessage("El nombre es requerido.")
             .MaximumLength(150).WithMessage("El nombre no puede exceder 150 caracteres.");
@@ -20,9 +15,7 @@ public class CreateVendedorDtoValidator : AbstractValidator<CreateVendedorDto>
             .NotEmpty().WithMessage("La identificación es requerida.")
             .MinimumLength(5).WithMessage("La identificación debe tener al menos 5 caracteres.")
             .MaximumLength(100).WithMessage("La identificación no puede exceder 100 caracteres.")
-            .Matches(@"^[0-9\-]+$").WithMessage("La identificación solo puede contener números y guiones.")
-            .MustAsync(BeUniqueIdentificacion)
-            .WithMessage("Ya existe un vendedor con esta identificación.");
+            .Matches(@"^[0-9\-]+$").WithMessage("La identificación solo puede contener números y guiones.");
 
         RuleFor(x => x.Correo)
             .EmailAddress().WithMessage("El formato del correo electrónico no es válido.")
@@ -33,12 +26,6 @@ public class CreateVendedorDtoValidator : AbstractValidator<CreateVendedorDto>
             .MaximumLength(1000).WithMessage("Las observaciones no pueden exceder 1000 caracteres.")
             .When(x => !string.IsNullOrWhiteSpace(x.Observaciones));
     }
-
-    private async Task<bool> BeUniqueIdentificacion(string identificacion, CancellationToken ct)
-    {
-        var existing = await _unitOfWork.Vendedores.GetByIdentificacionAsync(identificacion, ct);
-        return existing == null;
-    }
 }
 
 public class UpdateVendedorDtoValidator : AbstractValidator<UpdateVendedorDto>
@@ -48,6 +35,12 @@ public class UpdateVendedorDtoValidator : AbstractValidator<UpdateVendedorDto>
         RuleFor(x => x.Nombre)
             .NotEmpty().WithMessage("El nombre es requerido.")
             .MaximumLength(150).WithMessage("El nombre no puede exceder 150 caracteres.");
+
+        RuleFor(x => x.Identificacion)
+            .NotEmpty().WithMessage("La identificación es requerida.")
+            .MinimumLength(5).WithMessage("La identificación debe tener al menos 5 caracteres.")
+            .MaximumLength(100).WithMessage("La identificación no puede exceder 100 caracteres.")
+            .Matches(@"^[0-9\-]+$").WithMessage("La identificación solo puede contener números y guiones.");
 
         RuleFor(x => x.Correo)
             .EmailAddress().WithMessage("El formato del correo electrónico no es válido.")

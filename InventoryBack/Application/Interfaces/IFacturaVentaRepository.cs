@@ -1,3 +1,4 @@
+using InventoryBack.Application.DTOs;
 using InventoryBack.Domain.Entities;
 
 namespace InventoryBack.Application.Interfaces;
@@ -31,4 +32,11 @@ public interface IFacturaVentaRepository : IGenericRepository<FacturaVenta>
     /// Checks if an invoice can be deleted.
     /// </summary>
     Task<bool> CanDeleteAsync(Guid id, CancellationToken ct = default);
+    
+    /// <summary>
+    /// Gets a paginated list of sales invoices with filtering and sorting.
+    /// </summary>
+    Task<(IEnumerable<FacturaVenta> Items, int TotalCount)> GetPagedAsync(
+        FacturaVentaFilterDto filters,
+        CancellationToken ct = default);
 }

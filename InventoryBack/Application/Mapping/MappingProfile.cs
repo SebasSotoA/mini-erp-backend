@@ -86,13 +86,29 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.ImagenCategoriaUrl, opt => opt.Ignore());
 
         // Vendedor mappings
-        CreateMap<CreateVendedorDto, Vendedor>();
-        CreateMap<UpdateVendedorDto, Vendedor>();
         CreateMap<Vendedor, VendedorDto>();
+        
+        CreateMap<CreateVendedorDto, Vendedor>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.FechaCreacion, opt => opt.Ignore())
+            .ForMember(dest => dest.Activo, opt => opt.MapFrom(src => true));
+
+        CreateMap<UpdateVendedorDto, Vendedor>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.FechaCreacion, opt => opt.Ignore())
+            .ForMember(dest => dest.Activo, opt => opt.Ignore());
 
         // Proveedor mappings
-        CreateMap<CreateProveedorDto, Proveedor>();
-        CreateMap<UpdateProveedorDto, Proveedor>();
         CreateMap<Proveedor, ProveedorDto>();
+        
+        CreateMap<CreateProveedorDto, Proveedor>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.FechaCreacion, opt => opt.Ignore())
+            .ForMember(dest => dest.Activo, opt => opt.MapFrom(src => true));
+
+        CreateMap<UpdateProveedorDto, Proveedor>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.FechaCreacion, opt => opt.Ignore())
+            .ForMember(dest => dest.Activo, opt => opt.Ignore());
     }
 }

@@ -771,18 +771,384 @@ GET /api/proveedores?soloActivos=false
 
 ## 7?? Movimientos de Inventario `/api/movimientos-inventario` (READ-ONLY)
 
-**?? Importante:** Este endpoint es de **SOLO LECTURA**. Los movimientos se crean automáticamente al procesar facturas de venta o compra.
+**?? Importante:** Este endpoint es de **SOLO LECTURA**. Los movimientos se crean automáticamente al procesar facturas de venta o compra. **No existe** POST, PUT, PATCH ni DELETE para movimientos.
 
-| Método | Endpoint | Descripción | Query Params |
-|--------|----------|-------------|--------------|
-| `GET` | `/api/movimientos-inventario` | Lista paginada con filtros avanzados | MovimientoInventarioFilterDto |
-| `GET` | `/api/movimientos-inventario/{id}` | Obtener movimiento por ID | - |
-| `GET` | `/api/movimientos-inventario/producto/{productoId}` | Kardex del producto | - |
-| `GET` | `/api/movimientos-inventario/bodega/{bodegaId}` | Movimientos de una bodega | - |
-| `GET` | `/api/movimientos-inventario/factura-venta/{facturaVentaId}` | Movimientos de una factura de venta | - |
-| `GET` | `/api/movimientos-inventario/factura-compra/{facturaCompraId}` | Movimientos de una factura de compra | - |
+### ?? Propósito
 
-### ?? MovimientoInventarioDto (Response)
+Los movimientos de inventario sirven para:
+- ? **Trazabilidad completa** de entradas y salidas de productos
+- ? **Auditoría** de operaciones de inventario
+- ? **Kardex** de productos (historial de movimientos)
+- ? **Reportes** de movimientos por bodega, producto, fecha, etc.
+- ? **Validación** de stock actual (sumando movimientos)
+
+---
+
+## ?? Endpoints Disponibles
+
+| Método | Endpoint | Descripción | Caso de Uso |
+|--------|----------|-------------|-------------|
+| `GET` | `/api/movimientos-inventario` | Lista paginada con filtros avanzados | Auditoría general, reportes |
+| `GET` | `/api/movimientos-inventario/{id}` | Obtener movimiento específico por ID | Ver detalles de un movimiento |
+| `GET` | `/api/movimientos-inventario/producto/{productoId}` | **Kardex del producto** | Historial completo de un producto |
+| `GET` | `/api/movimientos-inventario/bodega/{bodegaId}` | Movimientos de una bodega | Auditoría de bodega específica |
+| `GET` | `/api/movimientos-inventario/factura-venta/{facturaVentaId}` | Movimientos de una factura de venta | Ver qué productos se vendieron |
+| `GET` | `/api/movimientos-inventario/factura-compra/{facturaCompraId}` | Movimientos de una factura de compra | Ver qué productos se compraron |
+
+---
+
+## ?? GET `/api/movimientos-inventario` - Lista con Filtros
+
+### **Filtros Disponibles (Query Params)**
+
+| Parámetro | Tipo | Descripción | Ejemplo |
+|-----------|------|-------------|---------|
+| `page` | Int | Número de página (default: 1) | `?page=2` |
+| `pageSize` | Int | Tamaño de página (default: 20, max: 100) | `?pageSize=50` |
+| `productoId` | Guid? | Filtrar por producto específico | `?productoId=guid` |
+| `productoNombre` | String | Buscar por nombre de producto (parcial) | `?productoNombre=laptop` |
+| `productoSku` | String | Buscar por SKU (parcial) | `?productoSku=LAP` |
+| `bodegaId` | Guid? | Filtrar por bodega específica | `?bodegaId=guid` |
+| `bodegaNombre` | String | Buscar por nombre de bodega (parcial) | `?bodegaNombre=principal` |
+| `tipoMovimiento` | String | Filtrar por tipo: `VENTA` o `COMPRA` | `?tipoMovimiento=VENTA` |
+| `fechaDesde` | DateTime? | Desde esta fecha (inclusivo) | `?fechaDesde=2025-01-01` |
+| `fechaHasta` | DateTime? | Hasta esta fecha (inclusivo) | `?fechaHasta=2025-01-31` |
+| `cantidadMinima` | Int? | Cantidad mínima del movimiento | `?cantidadMinima=10` |
+| `cantidadMaxima` | Int? | Cantidad máxima del movimiento | `?cantidadMaxima=100` |
+| `facturaVentaId` | Guid? | Filtrar por factura de venta | `?facturaVentaId=guid` |
+| `facturaCompraId` | Guid? | Filtrar por factura de compra | `?facturaCompraId=guid` |
+| `orderBy` | String | Ordenar por: `fecha`, `cantidad`, `tipoMovimiento`, `productoNombre`, `bodegaNombre` | `?orderBy=fecha` |
+| `orderDesc` | Boolean | Orden descendente (default: true - más recientes primero) | `?orderDesc=false` |
+
+### **Ejemplos de Requests**
+
+```bash
+# Todos los movimientos (paginados)
+GET /api/movimientos-inventario
+
+# Movimientos del mes actual
+GET /api/movimientos-inventario?fechaDesde=2025-01-01&fechaHasta=2025-01-31
+
+# Solo ventas
+GET /api/movimientos-inventario?tipoMovimiento=VENTA
+
+# Solo compras
+GET /api/movimientos-inventario?tipoMovimiento=COMPRA
+
+# Movimientos de una bodega en un rango de fechas
+GET /api/movimientos-inventario?bodegaId=guid&fechaDesde=2025-01-01&fechaHasta=2025-01-31
+
+# Buscar movimientos de laptops
+GET /api/movimientos-inventario?productoNombre=laptop
+
+# Movimientos grandes (más de 50 unidades)
+GET /api/movimientos-inventario?cantidadMinima=50
+
+# Movimientos ordenados por cantidad descendente
+GET /api/movimientos-inventario?orderBy=cantidad&orderDesc=true
+```
+
+### **Response Structure**
+
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "id": "guid",
+        "productoId": "guid",
+        "productoNombre": "Laptop Dell XPS 15",
+        "productoSku": "LAP-DELL-001",
+        "bodegaId": "guid",
+        "bodegaNombre": "Bodega Principal",
+        "fecha": "2025-01-15T10:30:00Z",
+        "tipoMovimiento": "VENTA",
+        "cantidad": 5,
+        "costoUnitario": 4000000.00,
+        "precioUnitario": 5500000.00,
+        "observacion": "Venta - Factura FV-202501-0001",
+        "facturaVentaId": "guid",
+        "facturaVentaNumero": "FV-202501-0001",
+        "facturaCompraId": null,
+        "facturaCompraNumero": null
+      },
+      {
+        "id": "guid",
+        "productoId": "guid",
+        "productoNombre": "Mouse Logitech MX Master",
+        "productoSku": "MOU-LOG-001",
+        "bodegaId": "guid",
+        "bodegaNombre": "Bodega Principal",
+        "fecha": "2025-01-15T10:30:00Z",
+        "tipoMovimiento": "VENTA",
+        "cantidad": 3,
+        "costoUnitario": 350000.00,
+        "precioUnitario": 350000.00,
+        "observacion": "Venta - Factura FV-202501-0001",
+        "facturaVentaId": "guid",
+        "facturaVentaNumero": "FV-202501-0001",
+        "facturaCompraId": null,
+        "facturaCompraNumero": null
+      }
+    ],
+    "page": 1,
+    "pageSize": 20,
+    "totalCount": 45
+  },
+  "message": "Movimientos de inventario obtenidos correctamente."
+}
+```
+
+---
+
+## ?? GET `/api/movimientos-inventario/{id}` - Por ID
+
+**Descripción:** Obtiene un movimiento específico por su ID.
+
+**Request:**
+```bash
+GET /api/movimientos-inventario/{guid}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "guid",
+    "productoId": "guid",
+    "productoNombre": "Laptop Dell XPS 15",
+    "productoSku": "LAP-DELL-001",
+    "bodegaId": "guid",
+    "bodegaNombre": "Bodega Principal",
+    "fecha": "2025-01-15T10:30:00Z",
+    "tipoMovimiento": "VENTA",
+    "cantidad": 5,
+    "costoUnitario": 4000000.00,
+    "precioUnitario": 5500000.00,
+    "observacion": "Venta - Factura FV-202501-0001",
+    "facturaVentaId": "guid",
+    "facturaVentaNumero": "FV-202501-0001",
+    "facturaCompraId": null,
+    "facturaCompraNumero": null
+  },
+  "message": "Movimiento de inventario obtenido correctamente."
+}
+```
+
+---
+
+## ?? GET `/api/movimientos-inventario/producto/{productoId}` - Kardex
+
+**Descripción:** Obtiene el **historial completo** de movimientos de un producto (Kardex). Muestra todas las entradas y salidas del producto en todas las bodegas.
+
+**Caso de Uso:**
+- Generar reporte Kardex
+- Ver historial completo de un producto
+- Auditoría de movimientos de inventario
+- Validar stock actual
+
+**Request:**
+```bash
+GET /api/movimientos-inventario/producto/{productoId}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "guid-1",
+      "productoNombre": "Laptop Dell XPS 15",
+      "productoSku": "LAP-DELL-001",
+      "bodegaNombre": "Bodega Principal",
+      "fecha": "2025-01-10T14:00:00Z",
+      "tipoMovimiento": "COMPRA",
+      "cantidad": 50,
+      "observacion": "Compra - Factura FC-202501-0001"
+    },
+    {
+      "id": "guid-2",
+      "productoNombre": "Laptop Dell XPS 15",
+      "productoSku": "LAP-DELL-001",
+      "bodegaNombre": "Bodega Principal",
+      "fecha": "2025-01-15T10:30:00Z",
+      "tipoMovimiento": "VENTA",
+      "cantidad": 5,
+      "observacion": "Venta - Factura FV-202501-0001"
+    },
+    {
+      "id": "guid-3",
+      "productoNombre": "Laptop Dell XPS 15",
+      "productoSku": "LAP-DELL-001",
+      "bodegaNombre": "Bodega Principal",
+      "fecha": "2025-01-16T09:00:00Z",
+      "tipoMovimiento": "VENTA",
+      "cantidad": -5,
+      "observacion": "Anulación de venta - Factura FV-202501-0001"
+    }
+  ],
+  "message": "Movimientos del producto obtenidos correctamente."
+}
+```
+
+**?? Ejemplo de Kardex:**
+
+| Fecha | Tipo | Cantidad | Observación | Stock Resultante |
+|-------|------|----------|-------------|------------------|
+| 2025-01-10 | COMPRA | +50 | Compra - FC-202501-0001 | 50 |
+| 2025-01-15 | VENTA | +5 | Venta - FV-202501-0001 | 45 |
+| 2025-01-16 | VENTA | **-5** | Anulación - FV-202501-0001 | 50 |
+
+---
+
+## ?? GET `/api/movimientos-inventario/bodega/{bodegaId}` - Por Bodega
+
+**Descripción:** Obtiene todos los movimientos (entradas y salidas) de una bodega específica.
+
+**Caso de Uso:**
+- Auditoría de una bodega
+- Ver historial de movimientos de un almacén
+- Reportes de actividad por bodega
+
+**Request:**
+```bash
+GET /api/movimientos-inventario/bodega/{bodegaId}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "guid",
+      "productoNombre": "Laptop Dell XPS 15",
+      "bodegaNombre": "Bodega Principal",
+      "fecha": "2025-01-10T14:00:00Z",
+      "tipoMovimiento": "COMPRA",
+      "cantidad": 50,
+      "observacion": "Compra - FC-202501-0001"
+    },
+    {
+      "id": "guid",
+      "productoNombre": "Mouse Logitech",
+      "bodegaNombre": "Bodega Principal",
+      "fecha": "2025-01-12T11:00:00Z",
+      "tipoMovimiento": "COMPRA",
+      "cantidad": 100,
+      "observacion": "Compra - FC-202501-0002"
+    }
+  ],
+  "message": "Movimientos de la bodega obtenidos correctamente."
+}
+```
+
+---
+
+## ?? GET `/api/movimientos-inventario/factura-venta/{facturaVentaId}` - Por Factura de Venta
+
+**Descripción:** Obtiene todos los movimientos de inventario asociados a una factura de venta específica.
+
+**Caso de Uso:**
+- Ver qué productos se vendieron en una factura
+- Auditoría de ventas
+- Validar stock reducido
+
+**Request:**
+```bash
+GET /api/movimientos-inventario/factura-venta/{facturaVentaId}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "guid-1",
+      "productoNombre": "Laptop Dell XPS 15",
+      "productoSku": "LAP-DELL-001",
+      "bodegaNombre": "Bodega Principal",
+      "fecha": "2025-01-15T10:30:00Z",
+      "tipoMovimiento": "VENTA",
+      "cantidad": 2,
+      "precioUnitario": 5500000.00,
+      "observacion": "Venta - Factura FV-202501-0001",
+      "facturaVentaNumero": "FV-202501-0001"
+    },
+    {
+      "id": "guid-2",
+      "productoNombre": "Mouse Logitech MX Master",
+      "productoSku": "MOU-LOG-001",
+      "bodegaNombre": "Bodega Principal",
+      "fecha": "2025-01-15T10:30:00Z",
+      "tipoMovimiento": "VENTA",
+      "cantidad": 3,
+      "precioUnitario": 350000.00,
+      "observacion": "Venta - Factura FV-202501-0001",
+      "facturaVentaNumero": "FV-202501-0001"
+    }
+  ],
+  "message": "Movimientos de la factura de venta obtenidos correctamente."
+}
+```
+
+---
+
+## ?? GET `/api/movimientos-inventario/factura-compra/{facturaCompraId}` - Por Factura de Compra
+
+**Descripción:** Obtiene todos los movimientos de inventario asociados a una factura de compra específica.
+
+**Caso de Uso:**
+- Ver qué productos se compraron en una factura
+- Auditoría de compras
+- Validar stock aumentado
+
+**Request:**
+```bash
+GET /api/movimientos-inventario/factura-compra/{facturaCompraId}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "guid-1",
+      "productoNombre": "Laptop Dell XPS 15",
+      "productoSku": "LAP-DELL-001",
+      "bodegaNombre": "Bodega Principal",
+      "fecha": "2025-01-10T14:00:00Z",
+      "tipoMovimiento": "COMPRA",
+      "cantidad": 50,
+      "costoUnitario": 4000000.00,
+      "observacion": "Compra - Factura FC-202501-0001",
+      "facturaCompraNumero": "FC-202501-0001"
+    },
+    {
+      "id": "guid-2",
+      "productoNombre": "Mouse Logitech MX Master",
+      "productoSku": "MOU-LOG-001",
+      "bodegaNombre": "Bodega Principal",
+      "fecha": "2025-01-10T14:00:00Z",
+      "tipoMovimiento": "COMPRA",
+      "cantidad": 100,
+      "costoUnitario": 200000.00,
+      "observacion": "Compra - Factura FC-202501-0001",
+      "facturaCompraNumero": "FC-202501-0001"
+    }
+  ],
+  "message": "Movimientos de la factura de compra obtenidos correctamente."
+}
+```
+
+---
+
+## ?? Estructura Completa de MovimientoInventarioDto
 
 ```json
 {
@@ -792,7 +1158,7 @@ GET /api/proveedores?soloActivos=false
   "productoSku": "string",
   "bodegaId": "guid",
   "bodegaNombre": "string",
-  "fecha": "2024-01-01T00:00:00Z",
+  "fecha": "2025-01-15T10:30:00Z",
   "tipoMovimiento": "VENTA | COMPRA",
   "cantidad": 10,
   "costoUnitario": 4000000.00,
@@ -805,326 +1171,220 @@ GET /api/proveedores?soloActivos=false
 }
 ```
 
-### Filtros de Query (GET `/api/movimientos-inventario`)
+**Descripción de Campos:**
+| Campo | Tipo | Descripción | Ejemplo |
+|-------|------|-------------|---------|
+| `id` | Guid | ID único del movimiento | `guid` |
+| `productoId` | Guid | ID del producto | `guid` |
+| `productoNombre` | String | Nombre del producto | "Laptop Dell XPS 15" |
+| `productoSku` | String | SKU del producto | "LAP-DELL-001" |
+| `bodegaId` | Guid | ID de la bodega | `guid` |
+| `bodegaNombre` | String | Nombre de la bodega | "Bodega Principal" |
+| `fecha` | DateTime | Fecha y hora del movimiento | "2025-01-15T10:30:00Z" |
+| `tipoMovimiento` | String | Tipo: `VENTA` o `COMPRA` | "VENTA" |
+| `cantidad` | Int | Cantidad movida (puede ser negativa) | 10 o -5 |
+| `costoUnitario` | Decimal? | Costo unitario (si es compra) | 4000000.00 |
+| `precioUnitario` | Decimal? | Precio unitario (si es venta) | 5500000.00 |
+| `observacion` | String | Descripción del movimiento | "Venta - Factura FV-001" |
+| `facturaVentaId` | Guid? | ID de factura de venta (si aplica) | `guid` o `null` |
+| `facturaVentaNumero` | String? | Número de factura de venta | "FV-202501-0001" |
+| `facturaCompraId` | Guid? | ID de factura de compra (si aplica) | `guid` o `null` |
+| `facturaCompraNumero` | String? | Número de factura de compra | "FC-202501-0001" |
 
-| Parámetro | Tipo | Descripción | Ejemplo |
-|-----------|------|-------------|---------|
-| `productoId` | Guid? | Filtrar por producto | `?productoId=guid` |
-| `productoNombre` | String | Buscar por nombre de producto | `?productoNombre=laptop` |
-| `productoSku` | String | Buscar por SKU | `?productoSku=LAP` |
-| `bodegaId` | Guid? | Filtrar por bodega | `?bodegaId=guid` |
-| `bodegaNombre` | String | Buscar por nombre de bodega | `?bodegaNombre=principal` |
-| `tipoMovimiento` | String | Filtrar por tipo: `VENTA` o `COMPRA` | `?tipoMovimiento=VENTA` |
-| `fechaDesde` | DateTime? | Desde esta fecha (inclusivo) | `?fechaDesde=2024-01-01` |
-| `fechaHasta` | DateTime? | Hasta esta fecha (inclusivo) | `?fechaHasta=2024-12-31` |
-| `cantidadMinima` | Int? | Cantidad mínima | `?cantidadMinima=10` |
-| `cantidadMaxima` | Int? | Cantidad máxima | `?cantidadMaxima=100` |
-| `facturaVentaId` | Guid? | Filtrar por factura de venta | `?facturaVentaId=guid` |
-| `facturaCompraId` | Guid? | Filtrar por factura de compra | `?facturaCompraId=guid` |
-| `orderBy` | String | Ordenar por: `fecha`, `cantidad`, `tipoMovimiento`, `productoNombre`, `bodegaNombre` | `?orderBy=fecha` |
-| `orderDesc` | Boolean | Orden descendente (default: true) | `?orderDesc=false` |
-| `page` | Int | Número de página | `?page=1` |
-| `pageSize` | Int | Tamaño de página (max: 100) | `?pageSize=20` |
+---
 
-### Casos de Uso
+## ?? Importante - Cantidades Negativas
 
-**1. Kardex de un Producto:**
+**Cantidad Positiva:** Movimiento normal
+- Venta normal: cantidad positiva (ej: +5)
+- Compra normal: cantidad positiva (ej: +50)
+
+**Cantidad Negativa:** Reversión (anulación de factura)
+- Venta anulada: cantidad negativa (ej: -5)
+- Compra anulada: cantidad negativa (ej: -50)
+
+**Ejemplo:**
+```json
+// Venta original
+{
+  "cantidad": 5,
+  "tipoMovimiento": "VENTA",
+  "observacion": "Venta - Factura FV-202501-0001"
+}
+
+// Anulación de la venta
+{
+  "cantidad": -5,  // ? NEGATIVO
+  "tipoMovimiento": "VENTA",
+  "observacion": "Anulación de venta - Factura FV-202501-0001"
+}
+```
+
+---
+
+## ?? Casos de Uso Comunes
+
+### **1. Generar Kardex de un Producto**
+
 ```bash
 GET /api/movimientos-inventario/producto/{productoId}
 ```
-Retorna todo el historial de movimientos del producto (entradas y salidas).
 
-**2. Auditoría de una Bodega:**
+**Uso:** Reporte completo de entradas y salidas de un producto.
+
+---
+
+### **2. Auditoría Mensual de Movimientos**
+
+```bash
+GET /api/movimientos-inventario?fechaDesde=2025-01-01&fechaHasta=2025-01-31
+```
+
+**Uso:** Ver todos los movimientos del mes.
+
+---
+
+### **3. Movimientos de Ventas del Día**
+
+```bash
+GET /api/movimientos-inventario?tipoMovimiento=VENTA&fechaDesde=2025-01-15&fechaHasta=2025-01-15
+```
+
+**Uso:** Dashboard de ventas diarias.
+
+---
+
+### **4. Auditoría de una Bodega Específica**
+
 ```bash
 GET /api/movimientos-inventario/bodega/{bodegaId}
 ```
-Retorna todos los movimientos de una bodega específica.
 
-**3. Movimientos por Rango de Fechas:**
-```bash
-GET /api/movimientos-inventario?fechaDesde=2024-01-01&fechaHasta=2024-01-31
-```
+**Uso:** Ver todos los movimientos históricos de un almacén.
 
-**4. Solo Ventas del Mes:**
-```bash
-GET /api/movimientos-inventario?tipoMovimiento=VENTA&fechaDesde=2024-01-01&fechaHasta=2024-01-31
-```
+---
 
-**5. Movimientos de una Factura:**
+### **5. Ver Movimientos de una Factura**
+
 ```bash
 GET /api/movimientos-inventario/factura-venta/{facturaId}
 ```
 
-**?? Nota sobre Cantidades:**
-- **Cantidad Positiva:** Movimiento normal (venta o compra)
-- **Cantidad Negativa:** Reversión (anulación de factura)
-
-**Ejemplo de Kardex:**
-
-| Fecha | Tipo | Cantidad | Observación |
-|-------|------|----------|-------------|
-| 2024-01-10 | COMPRA | +50 | Compra - FC-0001 |
-| 2024-01-15 | VENTA | +5 | Venta - FV-0001 |
-| 2024-01-16 | VENTA | **-5** | Anulación - FV-0001 |
+**Uso:** Ver qué productos se vendieron en una factura específica.
 
 ---
 
-## 8?? Facturas de Venta `/api/facturas-venta`
+### **6. Buscar Movimientos de Laptops**
 
-| Método | Endpoint | Descripción | Body |
-|--------|----------|-------------|------|
-| `GET` | `/api/facturas-venta` | Lista de todas las facturas de venta | - |
-| `GET` | `/api/facturas-venta/{id}` | Obtener factura por ID | - |
-| `POST` | `/api/facturas-venta` | Crear factura de venta | CreateFacturaVentaDto |
-| `DELETE` | `/api/facturas-venta/{id}` | Anular factura (soft delete) | - |
-
-**?? Importante:**
-- Al crear una factura se **reduce el stock** automáticamente
-- Al anular una factura se **restaura el stock**
-- Se crean **movimientos de inventario** automáticos
-- Solo se pueden anular facturas en estado "Completada"
-
-### ?? CreateFacturaVentaDto (Request Body para POST)
-
-```json
-{
-  "bodegaId": "guid (requerido)",
-  "vendedorId": "guid (requerido)",
-  "fecha": "2024-01-01T00:00:00Z",
-  "formaPago": "Contado | Crédito",
-  "plazoPago": 30,
-  "medioPago": "Efectivo | Tarjeta | Transferencia",
-  "observaciones": "string (opcional)",
-  "items": [
-    {
-      "productoId": "guid",
-      "cantidad": 5,
-      "precioUnitario": 5500000.00,
-      "descuento": 0.00,
-      "impuesto": 0.00
-    }
-  ]
-}
+```bash
+GET /api/movimientos-inventario?productoNombre=laptop&orderBy=fecha&orderDesc=true
 ```
 
-### ?? FacturaVentaDto (Response)
-
-```json
-{
-  "id": "guid",
-  "numeroFactura": "FV-0001",
-  "bodegaId": "guid",
-  "bodegaNombre": "Bodega Principal",
-  "vendedorId": "guid",
-  "vendedorNombre": "Juan Pérez",
-  "fecha": "2024-01-01T00:00:00Z",
-  "formaPago": "Contado",
-  "plazoPago": null,
-  "medioPago": "Efectivo",
-  "observaciones": "string",
-  "estado": "Completada | Anulada",
-  "total": 27500000.00,
-  "items": [
-    {
-      "id": "guid",
-      "productoId": "guid",
-      "productoNombre": "Laptop Dell XPS",
-      "productoSku": "LAP-DELL-001",
-      "cantidad": 5,
-      "precioUnitario": 5500000.00,
-      "descuento": 0.00,
-      "impuesto": 0.00,
-      "totalLinea": 27500000.00
-    }
-  ]
-}
-```
-
-### Reglas de Negocio
-
-1. **Validación de Stock:**
-   - Se valida que haya stock suficiente ANTES de crear la factura
-   - Si no hay stock, retorna error 400
-
-2. **Numeración Automática:**
-   - El número de factura se genera automáticamente: `FV-0001`, `FV-0002`, etc.
-
-3. **Actualización de Stock:**
-   - Se reduce el stock en la bodega especificada
-   - Se crea un registro en `MovimientosInventario`
-
-4. **Anulación:**
-   - Solo se pueden anular facturas en estado "Completada"
-   - Al anular, se restaura el stock
-   - Se crea un movimiento de reversión (cantidad negativa)
-   - El estado cambia a "Anulada" (NO se elimina físicamente)
+**Uso:** Filtrar movimientos de un tipo de producto.
 
 ---
 
-## 9?? Facturas de Compra `/api/facturas-compra`
+### **7. Movimientos Grandes (Más de 50 unidades)**
 
-| Método | Endpoint | Descripción | Body |
-|--------|----------|-------------|------|
-| `GET` | `/api/facturas-compra` | Lista de todas las facturas de compra | - |
-| `GET` | `/api/facturas-compra/{id}` | Obtener factura por ID | - |
-| `POST` | `/api/facturas-compra` | Crear factura de compra | CreateFacturaCompraDto |
-| `DELETE` | `/api/facturas-compra/{id}` | Anular factura (soft delete) | - |
-
-**?? Importante:**
-- Al crear una factura se **aumenta el stock** automáticamente
-- Al anular una factura se **reduce el stock**
-- Se crean **movimientos de inventario** automáticos
-- Solo se pueden anular facturas en estado "Completada"
-
-### ?? CreateFacturaCompraDto (Request Body para POST)
-
-```json
-{
-  "bodegaId": "guid (requerido)",
-  "proveedorId": "guid (requerido)",
-  "fecha": "2024-01-01T00:00:00Z",
-  "observaciones": "string (opcional)",
-  "items": [
-    {
-      "productoId": "guid",
-      "cantidad": 50,
-      "costoUnitario": 4000000.00,
-      "descuento": 0.00,
-      "impuesto": 0.00
-    }
-  ]
-}
+```bash
+GET /api/movimientos-inventario?cantidadMinima=50&orderBy=cantidad&orderDesc=true
 ```
 
-### ?? FacturaCompraDto (Response)
-
-```json
-{
-  "id": "guid",
-  "numeroFactura": "FC-0001",
-  "bodegaId": "guid",
-  "bodegaNombre": "Bodega Principal",
-  "proveedorId": "guid",
-  "proveedorNombre": "Dell Colombia",
-  "fecha": "2024-01-01T00:00:00Z",
-  "observaciones": "string",
-  "estado": "Completada | Anulada",
-  "total": 200000000.00,
-  "items": [
-    {
-      "id": "guid",
-      "productoId": "guid",
-      "productoNombre": "Laptop Dell XPS",
-      "productoSku": "LAP-DELL-001",
-      "cantidad": 50,
-      "costoUnitario": 4000000.00,
-      "descuento": 0.00,
-      "impuesto": 0.00,
-      "totalLinea": 200000000.00
-    }
-  ]
-}
-```
-
-### Reglas de Negocio
-
-1. **Numeración Automática:**
-   - El número de factura se genera automáticamente: `FC-0001`, `FC-0002`, etc.
-
-2. **Actualización de Stock:**
-   - Se aumenta el stock en la bodega especificada
-   - Se crea un registro en `MovimientosInventario`
-
-3. **Anulación:**
-   - Solo se pueden anular facturas en estado "Completada"
-   - Al anular, se reduce el stock
-   - Se crea un movimiento de reversión (cantidad negativa)
-   - El estado cambia a "Anulada" (NO se elimina físicamente)
+**Uso:** Detectar movimientos importantes.
 
 ---
 
-## ?? Flujo de Movimientos de Inventario
+### **8. Solo Compras del Mes**
 
-### Crear Factura de Venta
-
-```
-POST /api/facturas-venta
-?
-1. Validar stock suficiente
-2. Crear factura (estado: "Completada")
-3. Reducir stock en ProductoBodega
-4. Crear MovimientoInventario (tipo: VENTA, cantidad: positiva)
+```bash
+GET /api/movimientos-inventario?tipoMovimiento=COMPRA&fechaDesde=2025-01-01&fechaHasta=2025-01-31
 ```
 
-### Anular Factura de Venta
-
-```
-DELETE /api/facturas-venta/{id}
-?
-1. Validar estado = "Completada"
-2. Cambiar estado a "Anulada"
-3. Restaurar stock en ProductoBodega
-4. Crear MovimientoInventario (tipo: VENTA, cantidad: NEGATIVA)
-```
-
-### Crear Factura de Compra
-
-```
-POST /api/facturas-compra
-?
-1. Crear factura (estado: "Completada")
-2. Aumentar stock en ProductoBodega
-3. Crear MovimientoInventario (tipo: COMPRA, cantidad: positiva)
-```
-
-### Anular Factura de Compra
-
-```
-DELETE /api/facturas-compra/{id}
-?
-1. Validar estado = "Completada"
-2. Cambiar estado a "Anulada"
-3. Reducir stock en ProductoBodega
-4. Crear MovimientoInventario (tipo: COMPRA, cantidad: NEGATIVA)
-```
+**Uso:** Reporte de compras mensuales.
 
 ---
 
-## ?? Resumen de Endpoints
+## ?? Restricciones y Reglas
 
-### Endpoints CRUD Completos
+| Operación | Permitido | Razón |
+|-----------|-----------|-------|
+| **GET** | ? Sí | Solo lectura - auditoría |
+| **POST** | ? No | Se crean automáticamente con facturas |
+| **PUT** | ? No | Los movimientos son inmutables |
+| **PATCH** | ? No | Los movimientos son inmutables |
+| **DELETE** | ? No | No se eliminan (auditoría) |
 
-| Entidad | GET Lista | GET By ID | POST | PUT | PATCH Activate | PATCH Deactivate | DELETE |
-|---------|-----------|-----------|------|-----|----------------|------------------|---------|
-| **Productos** | ? | ? | ? | ? | ? | ? | ? Permanente |
-| **Bodegas** | ? | ? | ? | ? | ? | ? | ? Permanente |
-| **Categorías** | ? | ? | ? | ? | ? | ? | ? Permanente |
-| **Campos Extra** | ? | ? | ? | ? | ? | ? | ? Permanente |
-| **Vendedores** | ? | ? | ? | ? | ? | ? | ? |
-| **Proveedores** | ? | ? | ? | ? | ? | ? | ? |
+**¿Cómo se crean los movimientos?**
 
-### Endpoints de Solo Lectura
+Los movimientos se crean **automáticamente** cuando:
 
-| Entidad | GET Lista | GET By ID | Endpoints Especiales |
-|---------|-----------|-----------|---------------------|
-| **Movimientos Inventario** | ? Filtros avanzados | ? | `/producto/{id}`, `/bodega/{id}`, `/factura-venta/{id}`, `/factura-compra/{id}` |
+1. **Se crea una factura de venta:**
+   - Se genera un movimiento tipo `VENTA` por cada item
+   - Stock se reduce en la bodega
 
-### Endpoints de Facturas
+2. **Se crea una factura de compra:**
+   - Se genera un movimiento tipo `COMPRA` por cada item
+   - Stock se aumenta en la bodega
 
-| Entidad | GET Lista | GET By ID | POST | DELETE (Anular) |
-|---------|-----------|-----------|------|-----------------|
-| **Facturas Venta** | ? | ? | ? | ? Soft Delete |
-| **Facturas Compra** | ? | ? | ? | ? Soft Delete |
+3. **Se anula una factura:**
+   - Se genera un movimiento de reversión (cantidad negativa)
+   - Stock se restaura/reduce según corresponda
 
-### Endpoints de Relaciones
+---
 
-| Relación | Endpoints Disponibles |
-|----------|----------------------|
-| **Producto ? Bodegas** | `GET /productos/{id}/bodegas`, `POST`, `PUT`, `DELETE` |
-| **Producto ? Campos Extra** | `GET /productos/{id}/campos-extra`, `PUT`, `DELETE` |
-| **Bodega ? Productos** | `GET /bodegas/{id}/productos` (filtros avanzados) |
-| **Categoría ? Productos** | `GET /categorias/{id}/productos` (filtros avanzados) |
-| **Campo Extra ? Productos** | `GET /campos-extra/{id}/productos` (filtros avanzados) |
+## ?? Ejemplo Completo - Flujo de Movimientos
+
+### **Escenario:**
+
+1. Compra de 50 laptops
+2. Venta de 5 laptops
+3. Anulación de la venta
+
+### **Movimientos Generados:**
+
+```json
+{
+  "fecha": "2025-01-10T14:00:00Z",
+  "tipoMovimiento": "COMPRA",
+  "cantidad": 50,  // ? Positivo (entrada)
+  "observacion": "Compra - Factura FC-202501-0001",
+  "facturaCompraNumero": "FC-202501-0001"
+},
+{
+  "fecha": "2025-01-15T10:30:00Z",
+  "tipoMovimiento": "VENTA",
+  "cantidad": 5,  // ? Positivo (salida)
+  "observacion": "Venta - Factura FV-202501-0001",
+  "facturaVentaNumero": "FV-202501-0001"
+},
+{
+  "fecha": "2025-01-16T09:00:00Z",
+  "tipoMovimiento": "VENTA",
+  "cantidad": -5,  // ? NEGATIVO (reversión)
+  "observacion": "Anulación de venta - Factura FV-202501-0001",
+  "facturaVentaNumero": "FV-202501-0001"
+}
+```
+
+**Stock Resultante:**
+- Después de compra: 50
+- Después de venta: 45
+- Después de anulación: 50 (restaurado)
+
+---
+
+## ?? Resumen
+
+? **Solo lectura** - No se pueden crear/editar/eliminar manualmente  
+? **Generación automática** - Se crean con facturas  
+? **Trazabilidad completa** - Cada movimiento queda registrado  
+? **Kardex disponible** - Historial por producto  
+? **Auditoría por bodega** - Ver movimientos de almacén  
+? **Filtros avanzados** - Buscar por múltiples criterios  
+? **Paginación** - Manejar grandes volúmenes de datos  
+? **Cantidades negativas** - Indican reversiones (anulaciones)  
+
+**Los movimientos de inventario son el corazón de la trazabilidad del sistema.** ??
 
 ---
 
@@ -1199,7 +1459,7 @@ POST /api/facturas-venta
 }
 ```
 **Resultado:**
-- ? Factura creada con número `FV-0001`
+- ? Factura creada with number `FV-0001`
 - ? Stock reducido en 2 unidades
 - ? Movimiento de inventario registrado
 

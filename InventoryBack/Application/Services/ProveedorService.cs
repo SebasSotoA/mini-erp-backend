@@ -26,6 +26,7 @@ public class ProveedorService : IProveedorService
             throw new BusinessRuleException($"Ya existe un proveedor con la identificación '{dto.Identificacion}'.");
         }
 
+        // ? FIX: Initialize required properties properly
         var proveedor = new Proveedor
         {
             Id = Guid.NewGuid(),
@@ -66,6 +67,21 @@ public class ProveedorService : IProveedorService
         }
 
         return _mapper.Map<IEnumerable<ProveedorDto>>(proveedores);
+    }
+
+    public async Task<PagedResult<ProveedorDto>> GetPagedAsync(ProveedorFilterDto filters, CancellationToken ct = default)
+    {
+        var (items, totalCount) = await _unitOfWork.Proveedores.GetPagedAsync(filters, ct);
+
+        var dtos = _mapper.Map<IEnumerable<ProveedorDto>>(items);
+
+        return new PagedResult<ProveedorDto>
+        {
+            Items = dtos,
+            Page = filters.Page,
+            PageSize = filters.PageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task UpdateAsync(Guid id, UpdateProveedorDto dto, CancellationToken ct = default)

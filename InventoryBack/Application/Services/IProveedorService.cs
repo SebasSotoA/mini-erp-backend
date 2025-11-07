@@ -21,6 +21,11 @@ public interface IProveedorService
     /// Gets all proveedores (active and inactive).
     /// </summary>
     Task<IEnumerable<ProveedorDto>> GetAllAsync(bool? soloActivos = null, CancellationToken ct = default);
+    
+    /// <summary>
+    /// Gets a paginated list of proveedores with filtering and sorting.
+    /// </summary>
+    Task<PagedResult<ProveedorDto>> GetPagedAsync(ProveedorFilterDto filters, CancellationToken ct = default);
 
     /// <summary>
     /// Updates a proveedor.

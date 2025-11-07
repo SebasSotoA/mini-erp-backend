@@ -20,14 +20,16 @@ public class FacturasCompraController : ControllerBase
     }
 
     /// <summary>
-    /// Gets all purchase invoices.
+    /// Gets all purchase invoices with filtering, sorting, and pagination.
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<FacturaCompraDto>>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<ApiResponse<IEnumerable<FacturaCompraDto>>>> GetAll(CancellationToken ct = default)
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<FacturaCompraDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<PagedResult<FacturaCompraDto>>>> GetAll(
+        [FromQuery] FacturaCompraFilterDto filters,
+        CancellationToken ct = default)
     {
-        var facturas = await _facturaCompraService.GetAllAsync(ct);
-        return this.OkResponse(facturas, "Facturas de compra obtenidas correctamente.");
+        var result = await _facturaCompraService.GetPagedAsync(filters, ct);
+        return this.OkResponse(result, "Facturas de compra obtenidas correctamente.");
     }
 
     /// <summary>

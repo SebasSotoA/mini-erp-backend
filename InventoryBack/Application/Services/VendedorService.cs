@@ -68,6 +68,21 @@ public class VendedorService : IVendedorService
         return _mapper.Map<IEnumerable<VendedorDto>>(vendedores);
     }
 
+    public async Task<PagedResult<VendedorDto>> GetPagedAsync(VendedorFilterDto filters, CancellationToken ct = default)
+    {
+        var (items, totalCount) = await _unitOfWork.Vendedores.GetPagedAsync(filters, ct);
+
+        var dtos = _mapper.Map<IEnumerable<VendedorDto>>(items);
+
+        return new PagedResult<VendedorDto>
+        {
+            Items = dtos,
+            Page = filters.Page,
+            PageSize = filters.PageSize,
+            TotalCount = totalCount
+        };
+    }
+
     public async Task UpdateAsync(Guid id, UpdateVendedorDto dto, CancellationToken ct = default)
     {
         var vendedor = await _unitOfWork.Vendedores.GetByIdAsync(id, ct);

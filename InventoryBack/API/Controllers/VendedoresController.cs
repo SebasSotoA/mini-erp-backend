@@ -20,17 +20,16 @@ public class VendedoresController : ControllerBase
     }
 
     /// <summary>
-    /// Gets all salespersons.
+    /// Gets all salespersons with filtering, sorting, and pagination.
     /// </summary>
-    /// <param name="soloActivos">Filter by active status (null = all, true = active only, false = inactive only)</param>
     [HttpGet]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<VendedorDto>>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<ApiResponse<IEnumerable<VendedorDto>>>> GetAll(
-        [FromQuery] bool? soloActivos = null,
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<VendedorDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<PagedResult<VendedorDto>>>> GetAll(
+        [FromQuery] VendedorFilterDto filters,
         CancellationToken ct = default)
     {
-        var vendedores = await _vendedorService.GetAllAsync(soloActivos, ct);
-        return this.OkResponse(vendedores, "Vendedores obtenidos correctamente.");
+        var result = await _vendedorService.GetPagedAsync(filters, ct);
+        return this.OkResponse(result, "Vendedores obtenidos correctamente.");
     }
 
     /// <summary>

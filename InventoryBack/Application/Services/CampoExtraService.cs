@@ -139,6 +139,25 @@ public class CampoExtraService : ICampoExtraService
             throw new BusinessRuleException("El campo extra ya está desactivado.");
         }
 
+        // ? VALIDACIÓN CONDICIONAL: Solo validar si el campo es requerido
+        if (campoExtra.EsRequerido)
+        {
+            var productCount = await _unitOfWork.ProductoCamposExtras.CountAsync(
+                filter: pce => pce.CampoExtraId == id,
+                ct: ct);
+
+            if (productCount > 0)
+            {
+                throw new BusinessRuleException(
+                    $"No se puede desactivar el campo extra requerido '{campoExtra.Nombre}' " +
+                    $"porque está asignado a {productCount} producto(s). " +
+                    "Para desactivarlo debe:\n" +
+                    "1. Cambiar 'EsRequerido' a false y luego desactivar, O\n" +
+                    "2. Eliminar el campo de todos los productos antes de desactivar\n\n" +
+                    "Los campos requeridos con productos asociados no pueden desactivarse para mantener la integridad de los datos.");
+            }
+        }
+
         campoExtra.Activo = false;
         _unitOfWork.CamposExtras.Update(campoExtra);
         await _unitOfWork.SaveChangesAsync(ct);

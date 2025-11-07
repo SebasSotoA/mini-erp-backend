@@ -21,6 +21,11 @@ public interface IFacturaCompraService
     /// Gets all purchase invoices.
     /// </summary>
     Task<IEnumerable<FacturaCompraDto>> GetAllAsync(CancellationToken ct = default);
+    
+    /// <summary>
+    /// Gets a paginated list of purchase invoices with filtering and sorting.
+    /// </summary>
+    Task<PagedResult<FacturaCompraDto>> GetPagedAsync(FacturaCompraFilterDto filters, CancellationToken ct = default);
 
     /// <summary>
     /// Cancels (anula) a purchase invoice using soft delete.

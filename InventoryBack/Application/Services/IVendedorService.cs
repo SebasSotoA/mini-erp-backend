@@ -21,6 +21,11 @@ public interface IVendedorService
     /// Gets all vendedores (active and inactive).
     /// </summary>
     Task<IEnumerable<VendedorDto>> GetAllAsync(bool? soloActivos = null, CancellationToken ct = default);
+    
+    /// <summary>
+    /// Gets a paginated list of vendedores with filtering and sorting.
+    /// </summary>
+    Task<PagedResult<VendedorDto>> GetPagedAsync(VendedorFilterDto filters, CancellationToken ct = default);
 
     /// <summary>
     /// Updates a vendedor.

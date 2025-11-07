@@ -1,3 +1,4 @@
+using InventoryBack.Application.DTOs;
 using InventoryBack.Domain.Entities;
 
 namespace InventoryBack.Application.Interfaces;
@@ -31,4 +32,11 @@ public interface IFacturaCompraRepository : IGenericRepository<FacturaCompra>
     /// Checks if an invoice can be deleted.
     /// </summary>
     Task<bool> CanDeleteAsync(Guid id, CancellationToken ct = default);
+    
+    /// <summary>
+    /// Gets a paginated list of purchase invoices with filtering and sorting.
+    /// </summary>
+    Task<(IEnumerable<FacturaCompra> Items, int TotalCount)> GetPagedAsync(
+        FacturaCompraFilterDto filters,
+        CancellationToken ct = default);
 }
