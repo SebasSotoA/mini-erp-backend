@@ -46,7 +46,7 @@ public class DashboardService : IDashboardService
         // 5. Productos con Stock Bajo
         var productosStockBajo = await GetCountProductosStockBajoAsync(ct);
 
-        // 6. Valor Total Inventario (suma de precioBase * stockActual)
+        // 6. Valor Total Inventario (suma de costoInicial * stockActual)
         var valorTotalInventario = await CalcularValorTotalInventarioAsync(ct);
 
         // 7. Margen Bruto (ventas - compras del mes)
@@ -157,7 +157,7 @@ public class DashboardService : IDashboardService
             {
                 var stock = await _unitOfWork.Products.GetTotalStockAsync(producto.Id, ct);
                 stockTotal += stock;
-                valorTotal += stock * producto.PrecioBase;
+                valorTotal += stock * producto.CostoInicial;
             }
 
             distribucion.Add(new DistribucionCategoriasDto
@@ -181,7 +181,7 @@ public class DashboardService : IDashboardService
             {
                 var stock = await _unitOfWork.Products.GetTotalStockAsync(producto.Id, ct);
                 stockTotal += stock;
-                valorTotal += stock * producto.PrecioBase;
+                valorTotal += stock * producto.CostoInicial;
             }
 
             distribucion.Add(new DistribucionCategoriasDto
@@ -252,7 +252,7 @@ public class DashboardService : IDashboardService
                 var producto = productos.FirstOrDefault(p => p.Id == pb.ProductoId);
                 if (producto != null)
                 {
-                    valorTotal += pb.StockActual * producto.PrecioBase;
+                    valorTotal += pb.StockActual * producto.CostoInicial;
                 }
             }
 
@@ -432,7 +432,7 @@ public class DashboardService : IDashboardService
         foreach (var producto in productos)
         {
             var stockTotal = await _unitOfWork.Products.GetTotalStockAsync(producto.Id, ct);
-            valorTotal += stockTotal * producto.PrecioBase;
+            valorTotal += stockTotal * producto.CostoInicial;
         }
 
         return valorTotal;
