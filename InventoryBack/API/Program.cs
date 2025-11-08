@@ -80,7 +80,16 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+        
+        // ? IMPORTANTE: Asegurar que los caracteres especiales se codifiquen correctamente
+        options.JsonSerializerOptions.Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
     });
+
+// Configure response content type with UTF-8 encoding
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(options =>
+{
+    options.JsonSerializerOptions.WriteIndented = false;
+});
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -140,10 +149,13 @@ var app = builder.Build();
 
 // ========== MIDDLEWARE PIPELINE ==========
 
-// 1. Exception Handling (MUST BE FIRST)
+// 1. UTF-8 Encoding (MUST BE FIRST to ensure all responses have correct charset)
+app.UseMiddleware<Utf8EncodingMiddleware>();
+
+// 2. Exception Handling
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-// 2. CORS (MUST BE BEFORE Authorization and MapControllers)
+// 3. CORS (MUST BE BEFORE Authorization and MapControllers)
 app.UseCors("CorsPolicy");
 
 // Configure the HTTP request pipeline.
